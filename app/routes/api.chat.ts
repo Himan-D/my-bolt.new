@@ -1,17 +1,36 @@
-import { type ActionFunctionArgs } from '@remix-run/cloudflare';
+import { type ActionFunctionArgs, type LoaderFunctionArgs } from '@remix-run/cloudflare';
 import { MAX_RESPONSE_SEGMENTS, MAX_TOKENS } from '~/lib/.server/llm/constants';
 import { CONTINUE_PROMPT } from '~/lib/.server/llm/prompts';
-import { streamText, type Messages, type StreamingOptions } from '~/lib/.server/llm/stream-text';
+import { streamText, type Messages, type StreamingOptions, type ModelConfig } from '~/lib/.server/llm/stream-text';
 import SwitchableStream from '~/lib/.server/llm/switchable-stream';
+
+export async function loader(args: LoaderFunctionArgs) {
+  return new Response(null, {
+    status: 405,
+    statusText: 'Method Not Allowed',
+  });
+}
 
 export async function action(args: ActionFunctionArgs) {
   return chatAction(args);
 }
 
+interface ChatRequestBody {
+  messages: Messages;
+  provider?: string;
+  model?: string;
+  apiKey?: string;
+}
+
 async function chatAction({ context, request }: ActionFunctionArgs) {
-  const { messages } = await request.json<{ messages: Messages }>();
+  const { messages, provider, model, apiKey } = await request.json<ChatRequestBody>();
 
   const stream = new SwitchableStream();
+
+  const modelConfig: ModelConfig | undefined =
+    provider && model && apiKey
+      ? { provider: provider as ModelConfig['provider'], modelId: model, apiKey }
+      : undefined;
 
   try {
     const options: StreamingOptions = {
@@ -32,13 +51,13 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         messages.push({ role: 'assistant', content });
         messages.push({ role: 'user', content: CONTINUE_PROMPT });
 
-        const result = await streamText(messages, context.cloudflare.env, options);
+        const result = await streamText(messages, context.cloudflare.env, options, modelConfig);
 
         return stream.switchSource(result.toAIStream());
       },
     };
 
-    const result = await streamText(messages, context.cloudflare.env, options);
+    const result = await streamText(messages, context.cloudflare.env, options, modelConfig);
 
     stream.switchSource(result.toAIStream());
 

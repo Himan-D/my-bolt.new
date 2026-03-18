@@ -1,5 +1,7 @@
+import { useStore } from '@nanostores/react';
 import { useState } from 'react';
 import { createScopedLogger } from '~/utils/logger';
+import { providersStore, selectedProviderStore, selectedModelStore } from '~/lib/stores/providers';
 
 const logger = createScopedLogger('usePromptEnhancement');
 
@@ -16,10 +18,17 @@ export function usePromptEnhancer() {
     setEnhancingPrompt(true);
     setPromptEnhanced(false);
 
+    const selectedProvider = selectedProviderStore.get();
+    const selectedModel = selectedModelStore.get();
+    const allProviders = providersStore.get();
+    const currentProvider = allProviders.find((p) => p.name === selectedProvider);
+    const apiKey = currentProvider?.apiKey || '';
+
     const response = await fetch('/api/enhancer', {
       method: 'POST',
       body: JSON.stringify({
         message: input,
+        ...(apiKey ? { provider: selectedProvider, model: selectedModel, apiKey } : {}),
       }),
     });
 

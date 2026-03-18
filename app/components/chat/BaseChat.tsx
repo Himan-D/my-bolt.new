@@ -28,11 +28,11 @@ interface BaseChatProps {
 }
 
 const EXAMPLE_PROMPTS = [
-  { text: 'Build a todo app in React using Tailwind' },
-  { text: 'Build a simple blog using Astro' },
-  { text: 'Create a cookie consent form using Material UI' },
-  { text: 'Make a space invaders game' },
-  { text: 'How do I center a div?' },
+  { text: 'Build a todo app in React using Tailwind', icon: 'i-ph:check-square' },
+  { text: 'Build a simple blog using Astro', icon: 'i-ph:newspaper' },
+  { text: 'Create a cookie consent form using Material UI', icon: 'i-ph:cookie' },
+  { text: 'Make a space invaders game', icon: 'i-ph:game-controller' },
+  { text: 'How do I center a div?', icon: 'i-ph:code' },
 ];
 
 const TEXTAREA_MIN_HEIGHT = 76;
@@ -73,10 +73,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           <div className={classNames(styles.Chat, 'flex flex-col flex-grow min-w-[var(--chat-min-width)] h-full')}>
             {!chatStarted && (
               <div id="intro" className="mt-[26vh] max-w-chat mx-auto">
-                <h1 className="text-5xl text-center font-bold text-bolt-elements-textPrimary mb-2">
+                <h1 className="text-5xl text-center font-bold text-bolt-elements-textPrimary mb-2 animate-fade-in">
                   Where ideas begin
                 </h1>
-                <p className="mb-4 text-center text-bolt-elements-textSecondary">
+                <p className="mb-4 text-center text-bolt-elements-textSecondary animate-fade-in-delayed">
                   Bring ideas to life in seconds or get help on existing projects.
                 </p>
               </div>
@@ -105,7 +105,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               >
                 <div
                   className={classNames(
-                    'shadow-sm border border-bolt-elements-borderColor bg-bolt-elements-prompt-background backdrop-filter backdrop-blur-[8px] rounded-lg overflow-hidden',
+                    'shadow-lg border border-bolt-elements-borderColor bg-bolt-elements-prompt-background backdrop-filter backdrop-blur-[8px] rounded-lg overflow-hidden transition-shadow hover:shadow-xl',
                   )}
                 >
                   <textarea
@@ -130,7 +130,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       minHeight: TEXTAREA_MIN_HEIGHT,
                       maxHeight: TEXTAREA_MAX_HEIGHT,
                     }}
-                    placeholder="How can Bolt help you today?"
+                    placeholder="How can Hima help you today?"
                     translate="no"
                   />
                   <ClientOnly>
@@ -196,8 +196,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                         }}
                         className="group flex items-center w-full gap-2 justify-center bg-transparent text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary transition-theme"
                       >
+                        <div className={`${examplePrompt.icon} text-lg opacity-50 group-hover:opacity-100 transition-opacity`} />
                         {examplePrompt.text}
-                        <div className="i-ph:arrow-bend-down-left" />
+                        <div className="i-ph:arrow-bend-down-left opacity-0 group-hover:opacity-70 transition-opacity" />
                       </button>
                     );
                   })}

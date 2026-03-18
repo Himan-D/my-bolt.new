@@ -6,6 +6,9 @@ import { themeStore } from './lib/stores/theme';
 import { stripIndents } from './utils/stripIndent';
 import { createHead } from 'remix-island';
 import { useEffect } from 'react';
+import { ClerkApp } from '@clerk/remix';
+import { rootAuthLoader } from '@clerk/remix/ssr.server';
+import type { LoaderFunctionArgs } from '@remix-run/cloudflare';
 
 import reactToastifyStyles from 'react-toastify/dist/ReactToastify.css?url';
 import globalStyles from './styles/index.scss?url';
@@ -78,6 +81,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default function App() {
+export const loader = (args: LoaderFunctionArgs) => rootAuthLoader(args);
+
+function App() {
   return <Outlet />;
 }
+
+export default ClerkApp(App);
