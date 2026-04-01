@@ -16,7 +16,7 @@ A personalized fork of [Bolt.new](https://github.com/stackblitz/bolt.new) with c
 
 Bolt.new is an AI-powered web development agent that allows you to prompt, run, edit, and deploy full-stack applications directly from your browser—no local setup required. If you're here to build your own AI-powered web dev agent using the Bolt.new open source codebase, [click here to get started!](./CONTRIBUTING.md)
 
-## What Makes Hima Different
+## What Makes Bolt.new Different
 
 Claude, v0, etc are incredible- but you can't install packages, run backends or edit code. That’s where Bolt.new stands out:
 
@@ -53,6 +53,12 @@ This is an enhanced fork of the official [Bolt.new](https://github.com/stackblit
 
 **What recent enhancements have been made?**  
 Recent updates include client-side rendering optimizations, refactored UI components with a new component library, enhanced LLM configuration and streaming, improved GitHub integration, and better persistence layer management.
+
+**Can this generate good code?**  
+Yes. With clear prompts, the right model selection, and iterative refinement, this fork can generate strong full-stack code including UI, APIs, and integrations. Code quality improves significantly when you ask for tests, lint fixes, and small step-by-step changes instead of one large prompt.
+
+**Is this comparable to Lovable?**  
+It is comparable for rapid app generation, but the strengths differ. Lovable is optimized for fast product scaffolding, while Bolt.new-style workflows excel when you need direct environment control (files, terminal, package installs, backend processes) and deeper iteration inside a real runtime.
 
 **Where do I sign up for a paid plan?**  
 Bolt.new is free to get started. If you need more AI tokens or want private projects, you can purchase a paid subscription in your [Bolt.new](https://bolt.new) settings, in the lower-left hand corner of the application.
