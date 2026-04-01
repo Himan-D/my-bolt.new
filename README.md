@@ -48,6 +48,12 @@ Here are some tips to get the most out of Bolt.new:
 
 ## FAQs
 
+**What is this fork?**  
+This is an enhanced fork of the official [Bolt.new](https://github.com/stackblitz/bolt.new) repository with custom improvements including optimized client-side rendering, enhanced LLM provider configuration, improved UI components, and better state management. It maintains compatibility with the upstream Bolt.new project.
+
+**What recent enhancements have been made?**  
+Recent updates include client-side rendering optimizations, refactored UI components with a new component library, enhanced LLM configuration and streaming, improved GitHub integration, and better persistence layer management.
+
 **Where do I sign up for a paid plan?**  
 Bolt.new is free to get started. If you need more AI tokens or want private projects, you can purchase a paid subscription in your [Bolt.new](https://bolt.new) settings, in the lower-left hand corner of the application.
 
@@ -55,13 +61,13 @@ Bolt.new is free to get started. If you need more AI tokens or want private proj
 Once your free daily token limit is reached, AI interactions are paused until the next day or until you upgrade your plan.
 
 **Is Bolt in beta?**  
-Yes, Bolt.new is in beta, and we are actively improving it based on feedback.
+Yes, Bolt.new is in beta, and the project is actively being improved based on feedback and community contributions.
 
-**How can I report Bolt.new issues?**  
-Check out the [Issues section](https://github.com/stackblitz/bolt.new/issues) to report an issue or request a new feature. Please use the search feature to check if someone else has already submitted the same issue/request.
+**How can I report issues with this fork?**  
+Check out the [Issues section](https://github.com/Himan-D/my-bolt.new/issues) to report issues or request features. For issues with the original Bolt.new project, see the [upstream Issues section](https://github.com/stackblitz/bolt.new/issues).
 
 **What frameworks/libraries currently work on Bolt?**  
 Bolt.new supports most popular JavaScript frameworks and libraries. If it runs on StackBlitz, it will run on Bolt.new as well.
 
-**How can I add make sure my framework/project works well in bolt?**  
-We are excited to work with the JavaScript ecosystem to improve functionality in Bolt. Reach out to us via [hello@stackblitz.com](mailto:hello@stackblitz.com) to discuss how we can partner!
+**How can I partner or contribute?**  
+For the original Bolt.new project, reach out via [hello@stackblitz.com](mailto:hello@stackblitz.com). For contributions to this fork, please submit pull requests and follow standard GitHub contribution practices.
