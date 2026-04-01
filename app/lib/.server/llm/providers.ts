@@ -19,7 +19,7 @@ export function getModel(provider: ProviderName, apiKey: string, modelId: string
       return google(modelId);
     }
     case 'OpenRouter': {
-      // OpenRouter is compatible with OpenAI API format
+      // openrouter is compatible with OpenAI API format
       const openrouter = createOpenAI({
         apiKey,
         baseURL: 'https://openrouter.ai/api/v1',

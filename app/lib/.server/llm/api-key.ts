@@ -8,8 +8,8 @@ export function getAPIKey(cloudflareEnv: Env, provider?: ProviderName): APIKeyRe
    * The `cloudflareEnv` is only used when deployed or when previewing locally.
    * In development the environment variables are available through `env`.
    */
-  
-  // Provider-specific key retrieval
+
+  // provider-specific key retrieval
   if (provider === 'Anthropic') {
     const processKey = env.ANTHROPIC_API_KEY;
     const cloudflareKey = cloudflareEnv?.ANTHROPIC_API_KEY;
@@ -42,10 +42,12 @@ export function getAPIKey(cloudflareEnv: Env, provider?: ProviderName): APIKeyRe
     return key || null;
   }
 
-  // Fallback: Try to find any available key in priority order
+  // fallback: try to find any available key in priority order
   const providers: ProviderName[] = ['OpenRouter', 'Anthropic', 'OpenAI', 'Google'];
+
   for (const prov of providers) {
     const keyResult = getAPIKey(cloudflareEnv, prov);
+
     if (keyResult && typeof keyResult === 'string') {
       return { key: keyResult, provider: prov };
     }

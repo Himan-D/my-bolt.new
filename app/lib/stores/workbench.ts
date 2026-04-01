@@ -8,7 +8,7 @@ import { cloudStore } from '~/lib/stores/cloud';
 import { webcontainer } from '~/lib/webcontainer';
 import type { ITerminal } from '~/types/terminal';
 import { unreachable } from '~/utils/unreachable';
-import { publishProjectToGithub, syncProjectFromGithub } from '../github';
+import { publishProjectToGithub, syncProjectFromGithub } from '~/lib/github';
 import { EditorStore } from './editor';
 import { FilesStore, type FileMap } from './files';
 import { PreviewsStore } from './previews';

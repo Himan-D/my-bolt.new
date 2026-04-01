@@ -46,14 +46,14 @@ function compactMessages(messages: Messages): Messages {
   const olderMessages = messages.slice(0, splitIndex);
   const recentMessages = messages.slice(splitIndex);
 
-  // Extract key decisions, file paths, and goals from older messages
+  // extract key decisions, file paths, and goals from older messages
   const summaryChunks: string[] = [];
   let summaryLength = 0;
 
   for (const message of olderMessages) {
     const normalized = message.content.replace(/\s+/g, ' ').trim();
 
-    // Prioritize higher-signal content: shorter budget for assistant code blocks
+    // prioritize higher-signal content: shorter budget for assistant code blocks
     const hasCode = normalized.includes('<boltAction') || normalized.includes('```');
     const maxChars = hasCode ? 200 : 400;
     const clipped = normalized.length > maxChars ? `${normalized.slice(0, maxChars)}...` : normalized;
@@ -85,31 +85,42 @@ export function streamText(messages: Messages, env: Env, options?: StreamingOpti
   let model;
   let provider: ProviderName = 'Anthropic';
 
-  if (modelConfig?.provider && modelConfig?.apiKey && modelConfig?.modelId) {
-    model = getModel(modelConfig.provider, modelConfig.apiKey, modelConfig.modelId);
+  if (modelConfig?.provider && modelConfig?.modelId) {
+    const explicitApiKey = modelConfig.apiKey?.trim();
+    const envApiKeyResult = getAPIKey(env, modelConfig.provider);
+    const envApiKey = typeof envApiKeyResult === 'string' ? envApiKeyResult : null;
+    const resolvedApiKey = explicitApiKey || envApiKey;
+
+    if (!resolvedApiKey) {
+      throw new Error(
+        `No API key found for provider ${modelConfig.provider}. Please set it in Settings or environment variables.`,
+      );
+    }
+
+    model = getModel(modelConfig.provider, resolvedApiKey, modelConfig.modelId);
     provider = modelConfig.provider;
   } else {
-    // Try to use any available provider key
+    // try to use any available provider key
     const keyResult = getAPIKey(env);
-    
+
     if (!keyResult) {
       throw new Error(
         'No API key found. Please set one of: ANTHROPIC_API_KEY, OPENAI_API_KEY, GOOGLE_API_KEY, or OPENROUTER_API_KEY in your .env.local or .dev.vars',
       );
     }
-    
-    // If keyResult is a string, use Anthropic as default
+
+    // if keyResult is a string, use Anthropic as default
     const apiKey = typeof keyResult === 'string' ? keyResult : keyResult.key;
     provider = typeof keyResult === 'string' ? 'Anthropic' : keyResult.provider;
-    
-    // Use provider-specific default models
+
+    // use provider-specific default models
     const defaultModels: Record<ProviderName, string> = {
       Anthropic: 'claude-3-7-sonnet-20250219',
       OpenAI: 'gpt-4o',
       Google: 'gemini-2.5-pro-preview-03-25',
       OpenRouter: 'anthropic/claude-3.7-sonnet',
     };
-    
+
     const modelId = defaultModels[provider];
     model = getModel(provider, apiKey, modelId);
   }
@@ -117,7 +128,7 @@ export function streamText(messages: Messages, env: Env, options?: StreamingOpti
   const extraHeaders: Record<string, string> = {};
 
   if (provider === 'Anthropic') {
-    // Enable extended output for all claude-3-5+ and claude-3-7 models
+    // enable extended output for all claude-3-5+ and claude-3-7 models
     extraHeaders['anthropic-beta'] = 'output-128k-2025-02-19';
   }
 

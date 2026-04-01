@@ -68,7 +68,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
   } catch (error: any) {
     console.error('Chat Action Error:', error);
 
-    // Check for API key related errors
+    // check for API key related errors
     let status = error.statusCode || 500;
     let message = error.message || 'Internal Server Error';
 
@@ -88,6 +88,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
       message.includes('invalid x-api-key')
     ) {
       status = 401;
+
       if (!message.includes('API key')) {
         message = `Authentication failed: ${message}. Please check your API key configuration. See API_PROVIDERS.md for setup instructions.`;
       }
