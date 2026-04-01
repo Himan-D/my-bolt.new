@@ -1,8 +1,20 @@
 [![Bolt.new: AI-Powered Full-Stack Web Development in the Browser](./public/social_preview_index.jpg)](https://bolt.new)
 
-# Hima: AI-Powered Full-Stack Web Development in the Browser
+# Bolt.new - Enhanced Fork
 
-Hima is an AI-powered web development agent that allows you to prompt, run, edit, and deploy full-stack applications directly from your browser—no local setup required. If you're here to build your own AI-powered web dev agent using the Hima open source codebase, [click here to get started!](./CONTRIBUTING.md)
+A personalized fork of [Bolt.new](https://github.com/stackblitz/bolt.new) with custom enhancements and optimizations for AI-powered full-stack web development in the browser.
+
+**Latest Update (April 2, 2026):**
+- Refactored UI components to client-side rendering for improved performance
+- Enhanced LLM configuration with better provider and model handling
+- Added new UI component library (Button, ContextMenu, Input, ScrollArea)
+- Improved GitHub integration utilities
+- Enhanced persistence layer and state management
+- Added PDF utility functions for document processing
+
+## About Bolt.new
+
+Bolt.new is an AI-powered web development agent that allows you to prompt, run, edit, and deploy full-stack applications directly from your browser—no local setup required. If you're here to build your own AI-powered web dev agent using the Bolt.new open source codebase, [click here to get started!](./CONTRIBUTING.md)
 
 ## What Makes Hima Different
 
