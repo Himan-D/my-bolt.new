@@ -1,5 +1,12 @@
-import * as Dialog from '@radix-ui/react-dialog';
 import { useEffect, useRef, useState } from 'react';
+import {
+  ContextMenu,
+  ContextMenuTrigger,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+} from '~/components/ui/ContextMenu';
+import { Input } from '~/components/ui/Input';
 import { type ChatHistoryItem } from '~/lib/persistence';
 
 interface HistoryItemProps {
@@ -10,35 +17,9 @@ interface HistoryItemProps {
 }
 
 export function HistoryItem({ item, onDelete, onRename, onDuplicate }: HistoryItemProps) {
-  const [hovering, setHovering] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(item.description || '');
-  const hoverRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    let timeout: NodeJS.Timeout | undefined;
-
-    function mouseEnter() {
-      setHovering(true);
-
-      if (timeout) {
-        clearTimeout(timeout);
-      }
-    }
-
-    function mouseLeave() {
-      setHovering(false);
-    }
-
-    hoverRef.current?.addEventListener('mouseenter', mouseEnter);
-    hoverRef.current?.addEventListener('mouseleave', mouseLeave);
-
-    return () => {
-      hoverRef.current?.removeEventListener('mouseenter', mouseEnter);
-      hoverRef.current?.removeEventListener('mouseleave', mouseLeave);
-    };
-  }, []);
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -55,13 +36,33 @@ export function HistoryItem({ item, onDelete, onRename, onDuplicate }: HistoryIt
     setIsEditing(false);
   };
 
-  return (
-    <div
-      ref={hoverRef}
-      className="group rounded-md text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3 overflow-hidden flex justify-between items-center px-2 py-1"
-    >
-      {isEditing ? (
-        <input
+  const handleContextMenuAction = (action: 'rename' | 'duplicate' | 'delete', event?: React.UIEvent) => {
+    switch (action) {
+      case 'rename': {
+        setEditValue(item.description || '');
+        setIsEditing(true);
+        break;
+      }
+
+      case 'duplicate': {
+        onDuplicate?.(item.id);
+        break;
+      }
+
+      case 'delete': {
+        if (event) {
+          onDelete?.(event);
+        }
+
+        break;
+      }
+    }
+  };
+
+  if (isEditing) {
+    return (
+      <div className="px-2 py-1">
+        <Input
           ref={inputRef}
           value={editValue}
           onChange={(e) => setEditValue(e.target.value)}
@@ -76,49 +77,48 @@ export function HistoryItem({ item, onDelete, onRename, onDuplicate }: HistoryIt
               setIsEditing(false);
             }
           }}
-          className="flex-1 bg-transparent border border-bolt-elements-borderColor rounded px-1 py-0.5 text-sm text-bolt-elements-textPrimary focus:outline-none focus:border-bolt-elements-textPrimary"
+          className="text-sm"
+          placeholder="Chat name"
+          autoFocus
         />
-      ) : (
-        <a href={`/chat/${item.urlId}`} className="flex w-full relative truncate block">
-          {item.description}
-          <div className="absolute right-0 z-1 top-0 bottom-0 bg-gradient-to-l from-bolt-elements-background-depth-2 group-hover:from-bolt-elements-background-depth-3 to-transparent w-10 flex justify-end group-hover:w-22 group-hover:from-45%">
-            {hovering && (
-              <div className="flex items-center gap-1 p-1">
-                {/* Rename */}
-                <button
-                  className="i-ph:pencil-simple scale-110 text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary"
-                  onClick={(event) => {
-                    event.preventDefault();
-                    setEditValue(item.description || '');
-                    setIsEditing(true);
-                  }}
-                  title="Rename"
-                />
-                {/* Duplicate */}
-                <button
-                  className="i-ph:copy scale-110 text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary"
-                  onClick={(event) => {
-                    event.preventDefault();
-                    onDuplicate?.(item.id);
-                  }}
-                  title="Duplicate"
-                />
-                {/* Delete */}
-                <Dialog.Trigger asChild>
-                  <button
-                    className="i-ph:trash scale-110 text-bolt-elements-textSecondary hover:text-bolt-elements-item-contentDanger"
-                    onClick={(event) => {
-                      event.preventDefault();
-                      onDelete?.(event);
-                    }}
-                    title="Delete"
-                  />
-                </Dialog.Trigger>
-              </div>
-            )}
-          </div>
+      </div>
+    );
+  }
+
+  return (
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
+        <a
+          href={`/chat/${item.urlId}`}
+          className="group flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3 transition-colors truncate cursor-pointer"
+          title={item.description}
+        >
+          <span className="i-ph:chat text-base flex-shrink-0 opacity-60 group-hover:opacity-100" />
+          <span className="flex-1 truncate">{item.description}</span>
         </a>
-      )}
-    </div>
+      </ContextMenuTrigger>
+
+      <ContextMenuContent className="w-48">
+        <ContextMenuItem onClick={() => handleContextMenuAction('rename')} className="flex gap-2">
+          <span className="i-ph:pencil-simple text-base" />
+          Rename
+        </ContextMenuItem>
+
+        <ContextMenuItem onClick={() => handleContextMenuAction('duplicate')} className="flex gap-2">
+          <span className="i-ph:copy text-base" />
+          Duplicate
+        </ContextMenuItem>
+
+        <ContextMenuSeparator />
+
+        <ContextMenuItem
+          onClick={(e: any) => handleContextMenuAction('delete', e)}
+          className="flex gap-2 text-bolt-elements-item-contentDanger focus:text-bolt-elements-item-contentDanger focus:bg-bolt-elements-background-depth-3"
+        >
+          <span className="i-ph:trash text-base" />
+          Delete
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
   );
 }

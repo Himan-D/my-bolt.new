@@ -1,10 +1,14 @@
 import { atom, map, type MapStore, type ReadableAtom, type WritableAtom } from 'nanostores';
+import JSZip from 'jszip';
+import * as nodePath from 'node:path';
 import type { EditorDocument, ScrollPosition } from '~/components/editor/codemirror/CodeMirrorEditor';
 import { ActionRunner } from '~/lib/runtime/action-runner';
 import type { ActionCallbackData, ArtifactCallbackData } from '~/lib/runtime/message-parser';
+import { cloudStore } from '~/lib/stores/cloud';
 import { webcontainer } from '~/lib/webcontainer';
 import type { ITerminal } from '~/types/terminal';
 import { unreachable } from '~/utils/unreachable';
+import { publishProjectToGithub, syncProjectFromGithub } from '../github';
 import { EditorStore } from './editor';
 import { FilesStore, type FileMap } from './files';
 import { PreviewsStore } from './previews';
@@ -84,6 +88,84 @@ export class WorkbenchStore {
 
   onTerminalResize(cols: number, rows: number) {
     this.#terminalStore.onTerminalResize(cols, rows);
+  }
+
+  async downloadZip() {
+    const zip = new JSZip();
+    const files = this.files.get();
+
+    for (const [filePath, dirent] of Object.entries(files)) {
+      if (dirent?.type === 'file' && !dirent.isBinary) {
+        zip.file(filePath, dirent.content);
+      }
+    }
+
+    const content = await zip.generateAsync({ type: 'blob' });
+    const url = URL.createObjectURL(content);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'bolt-project.zip';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async publishToGithub(repoName?: string) {
+    const cloud = cloudStore.get();
+
+    if (!cloud.githubToken) {
+      throw new Error('Missing GitHub token. Add it in Settings > Cloud > GitHub.');
+    }
+
+    const targetRepo = (repoName || cloud.githubRepo || '').trim();
+
+    if (!targetRepo) {
+      throw new Error('Repository name is required.');
+    }
+
+    const result = await publishProjectToGithub({
+      token: cloud.githubToken,
+      repo: targetRepo,
+      isPrivate: cloud.githubPrivate,
+      files: this.files.get(),
+    });
+
+    return result;
+  }
+
+  async syncFromGithub(repoName?: string) {
+    const cloud = cloudStore.get();
+
+    if (!cloud.githubToken) {
+      throw new Error('Missing GitHub token. Add it in Settings > Cloud > GitHub.');
+    }
+
+    const targetRepo = (repoName || cloud.githubRepo || '').trim();
+
+    if (!targetRepo) {
+      throw new Error('Repository name is required.');
+    }
+
+    const result = await syncProjectFromGithub({
+      token: cloud.githubToken,
+      repo: targetRepo,
+    });
+
+    const wc = await webcontainer;
+
+    for (const file of result.files) {
+      const folder = nodePath.posix.dirname(file.path);
+
+      if (folder && folder !== '.') {
+        await wc.fs.mkdir(folder, { recursive: true });
+      }
+
+      await wc.fs.writeFile(file.path, file.content);
+    }
+
+    return {
+      ...result,
+      filesPulled: result.files.length,
+    };
   }
 
   setDocuments(files: FileMap) {

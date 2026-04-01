@@ -7,12 +7,12 @@ let currentKey: string | null = null;
 
 export function getSupabaseClient(): SupabaseClient | null {
   const { supabaseUrl, supabaseAnonKey } = cloudStore.get();
-  
+
   if (!supabaseUrl || !supabaseAnonKey) {
     return null;
   }
-  
-  // Re-init if keys changed
+
+  // re-init if keys changed
   if (supabaseInstance === null || supabaseUrl !== currentUrl || supabaseAnonKey !== currentKey) {
     try {
       supabaseInstance = createClient(supabaseUrl, supabaseAnonKey);
@@ -23,6 +23,6 @@ export function getSupabaseClient(): SupabaseClient | null {
       return null;
     }
   }
-  
+
   return supabaseInstance;
 }

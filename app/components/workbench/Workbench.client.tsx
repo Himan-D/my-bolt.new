@@ -122,15 +122,72 @@ export const Workbench = memo(({ chatStarted, isStreaming }: WorkspaceProps) => 
                 <Slider selected={selectedView} options={sliderOptions} setSelected={setSelectedView} />
                 <div className="ml-auto" />
                 {selectedView === 'code' && (
-                  <PanelHeaderButton
-                    className="mr-1 text-sm"
-                    onClick={() => {
-                      workbenchStore.toggleTerminal(!workbenchStore.showTerminal.get());
-                    }}
-                  >
-                    <div className="i-ph:terminal" />
-                    Toggle Terminal
-                  </PanelHeaderButton>
+                  <>
+                    <PanelHeaderButton
+                      className="mr-1 text-sm"
+                      onClick={() => {
+                        workbenchStore.downloadZip();
+                      }}
+                    >
+                      <div className="i-ph:download-simple" />
+                      Download
+                    </PanelHeaderButton>
+                    <PanelHeaderButton
+                      className="mr-1 text-sm"
+                      onClick={() => {
+                        const repoName = window.prompt('Repository name', 'hima-app');
+
+                        if (!repoName) {
+                          return;
+                        }
+
+                        workbenchStore
+                          .publishToGithub(repoName)
+                          .then((result) => {
+                            toast.success(`Pushed ${result.filesPushed} files to ${result.repoFullName}`);
+                            window.open(result.repoUrl, '_blank');
+                          })
+                          .catch((error: Error) => {
+                            toast.error(error.message || 'Failed to push to GitHub');
+                          });
+                      }}
+                    >
+                      <div className="i-ph:github-logo" />
+                      Push GitHub
+                    </PanelHeaderButton>
+                    <PanelHeaderButton
+                      className="mr-1 text-sm"
+                      onClick={() => {
+                        const repoName = window.prompt('Repository to pull (owner/repo or repo)', 'hima-app');
+
+                        if (!repoName) {
+                          return;
+                        }
+
+                        workbenchStore
+                          .syncFromGithub(repoName)
+                          .then((result) => {
+                            toast.success(`Pulled ${result.filesPulled} files from ${result.repoFullName}`);
+                            window.open(result.repoUrl, '_blank');
+                          })
+                          .catch((error: Error) => {
+                            toast.error(error.message || 'Failed to pull from GitHub');
+                          });
+                      }}
+                    >
+                      <div className="i-ph:git-pull-request" />
+                      Pull GitHub
+                    </PanelHeaderButton>
+                    <PanelHeaderButton
+                      className="mr-1 text-sm"
+                      onClick={() => {
+                        workbenchStore.toggleTerminal(!workbenchStore.showTerminal.get());
+                      }}
+                    >
+                      <div className="i-ph:terminal" />
+                      Toggle Terminal
+                    </PanelHeaderButton>
+                  </>
                 )}
                 <IconButton
                   icon="i-ph:x-circle"

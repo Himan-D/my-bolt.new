@@ -1,14 +1,11 @@
+import { json, type LinksFunction, type LoaderFunctionArgs } from '@remix-run/cloudflare';
 import { useStore } from '@nanostores/react';
-import type { LinksFunction } from '@remix-run/cloudflare';
 import { Links, Meta, Outlet, Scripts, ScrollRestoration } from '@remix-run/react';
 import tailwindReset from '@unocss/reset/tailwind-compat.css?url';
 import { themeStore } from './lib/stores/theme';
 import { stripIndents } from './utils/stripIndent';
 import { createHead } from 'remix-island';
 import { useEffect } from 'react';
-import { ClerkApp } from '@clerk/remix';
-import { rootAuthLoader } from '@clerk/remix/ssr.server';
-import type { LoaderFunctionArgs } from '@remix-run/cloudflare';
 
 import reactToastifyStyles from 'react-toastify/dist/ReactToastify.css?url';
 import globalStyles from './styles/index.scss?url';
@@ -65,7 +62,11 @@ export const Head = createHead(() => (
   </>
 ));
 
-export function Layout({ children }: { children: React.ReactNode }) {
+export const loader = (_args: LoaderFunctionArgs) => {
+  return json({});
+};
+
+export default function App() {
   const theme = useStore(themeStore);
 
   useEffect(() => {
@@ -74,17 +75,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      {children}
+      <Outlet />
       <ScrollRestoration />
       <Scripts />
     </>
   );
 }
-
-export const loader = (args: LoaderFunctionArgs) => rootAuthLoader(args);
-
-function App() {
-  return <Outlet />;
-}
-
-export default ClerkApp(App);

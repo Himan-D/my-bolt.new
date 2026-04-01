@@ -2,8 +2,10 @@ import { motion, type Variants } from 'framer-motion';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import { Dialog, DialogButton, DialogDescription, DialogRoot, DialogTitle } from '~/components/ui/Dialog';
-import { IconButton } from '~/components/ui/IconButton';
 import { ThemeSwitch } from '~/components/ui/ThemeSwitch';
+import { Button } from '~/components/ui/Button';
+import { Input } from '~/components/ui/Input';
+import { ScrollArea } from '~/components/ui/ScrollArea';
 import {
   db,
   deleteById,
@@ -128,7 +130,9 @@ export function Menu() {
   }, []);
 
   const handleImport = useCallback(() => {
-    if (!db) {
+    const database = db;
+
+    if (!database) {
       return;
     }
 
@@ -145,7 +149,7 @@ export function Menu() {
 
       try {
         const text = await file.text();
-        const count = await importChats(db, text);
+        const count = await importChats(database, text);
         loadEntries();
         toast.success(`Imported ${count} chat(s)`);
       } catch (error: any) {
@@ -164,7 +168,7 @@ export function Menu() {
     if (open) {
       loadEntries();
     }
-  }, [open]);
+  }, [open, loadEntries]);
 
   useEffect(() => {
     const enterThreshold = 40;
@@ -187,7 +191,7 @@ export function Menu() {
     };
   }, []);
 
-  // Filter chats by search query
+  // filter chats by search query
   const filteredList = searchQuery
     ? list.filter((item) => item.description?.toLowerCase().includes(searchQuery.toLowerCase()))
     : list;
@@ -200,66 +204,83 @@ export function Menu() {
       variants={menuVariants}
       className="flex flex-col side-menu fixed top-0 w-[350px] h-full bg-bolt-elements-background-depth-2 border-r rounded-r-3xl border-bolt-elements-borderColor z-sidebar shadow-xl shadow-bolt-elements-sidebar-dropdownShadow text-sm"
     >
-      <div className="flex items-center h-[var(--header-height)]">{/* Placeholder */}</div>
+      {/* Header spacer */}
+      <div className="flex items-center h-[var(--header-height)]" />
+
+      {/* Main content */}
       <div className="flex-1 flex flex-col h-full w-full overflow-hidden">
+        {/* Start new chat button */}
         <div className="p-4">
           <a
             href="/"
-            className="flex gap-2 items-center bg-bolt-elements-sidebar-buttonBackgroundDefault text-bolt-elements-sidebar-buttonText hover:bg-bolt-elements-sidebar-buttonBackgroundHover rounded-md p-2 transition-theme"
+            className="flex gap-2 items-center bg-bolt-elements-sidebar-buttonBackgroundDefault text-bolt-elements-sidebar-buttonText hover:bg-bolt-elements-sidebar-buttonBackgroundHover rounded-md p-2 transition-colors"
           >
             <span className="inline-block i-bolt:chat scale-110" />
             Start new chat
           </a>
         </div>
 
-        {/* Search */}
+        {/* Search input */}
         <div className="px-4 pb-2">
           <div className="relative">
-            <div className="absolute left-2.5 top-1/2 -translate-y-1/2 i-ph:magnifying-glass text-bolt-elements-textTertiary" />
-            <input
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 i-ph:magnifying-glass text-bolt-elements-textTertiary text-sm" />
+            <Input
               type="text"
               placeholder="Search chats..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-8 pr-3 py-1.5 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary text-sm placeholder-bolt-elements-textTertiary focus:outline-none focus:border-bolt-elements-textTertiary transition-colors"
+              className="pl-9 bg-bolt-elements-background-depth-1 border-bolt-elements-borderColor text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary focus:border-bolt-elements-textTertiary"
+              aria-label="Search chats"
             />
           </div>
         </div>
 
-        <div className="text-bolt-elements-textPrimary font-medium pl-6 pr-5 my-2">Your Chats</div>
-        <div className="flex-1 overflow-scroll pl-4 pr-5 pb-5">
+        {/* Chat history header */}
+        <div className="text-bolt-elements-textPrimary font-semibold pl-6 pr-5 my-2 text-xs uppercase tracking-wide opacity-70">
+          Your Chats
+        </div>
+
+        {/* Chat list */}
+        <ScrollArea className="flex-1 px-4 pb-5">
           {filteredList.length === 0 && (
-            <div className="pl-2 text-bolt-elements-textTertiary">
-              {searchQuery ? 'No matching chats' : 'No previous conversations'}
+            <div className="pl-2 py-8 text-center text-bolt-elements-textTertiary text-sm">
+              {searchQuery ? 'No matching chats found' : 'No previous conversations'}
             </div>
           )}
+
           <DialogRoot open={dialogContent !== null}>
-            {binDates(filteredList).map(({ category, items }) => (
-              <div key={category} className="mt-4 first:mt-0 space-y-1">
-                <div className="text-bolt-elements-textTertiary sticky top-0 z-1 bg-bolt-elements-background-depth-2 pl-2 pt-2 pb-1">
-                  {category}
+            <div className="space-y-6">
+              {binDates(filteredList).map(({ category, items }) => (
+                <div key={category}>
+                  <div className="text-bolt-elements-textTertiary text-xs font-medium uppercase tracking-wide opacity-60 mb-2 px-2">
+                    {category}
+                  </div>
+                  <div className="space-y-1">
+                    {items.map((item) => (
+                      <HistoryItem
+                        key={item.id}
+                        item={item}
+                        onDelete={() => setDialogContent({ type: 'delete', item })}
+                        onRename={renameItem}
+                        onDuplicate={duplicateItem}
+                      />
+                    ))}
+                  </div>
                 </div>
-                {items.map((item) => (
-                  <HistoryItem
-                    key={item.id}
-                    item={item}
-                    onDelete={() => setDialogContent({ type: 'delete', item })}
-                    onRename={renameItem}
-                    onDuplicate={duplicateItem}
-                  />
-                ))}
-              </div>
-            ))}
+              ))}
+            </div>
+
+            {/* Delete confirmation dialog */}
             <Dialog onBackdrop={closeDialog} onClose={closeDialog}>
               {dialogContent?.type === 'delete' && (
                 <>
                   <DialogTitle>Delete Chat?</DialogTitle>
                   <DialogDescription asChild>
-                    <div>
+                    <div className="space-y-2">
                       <p>
                         You are about to delete <strong>{dialogContent.item.description}</strong>.
                       </p>
-                      <p className="mt-1">Are you sure you want to delete this chat?</p>
+                      <p className="text-sm opacity-75">Are you sure? This action cannot be undone.</p>
                     </div>
                   </DialogDescription>
                   <div className="px-5 pb-4 bg-bolt-elements-background-depth-2 flex gap-2 justify-end">
@@ -280,28 +301,36 @@ export function Menu() {
               )}
             </Dialog>
           </DialogRoot>
-        </div>
+        </ScrollArea>
 
-        {/* Export/Import + Theme */}
-        <div className="border-t border-bolt-elements-borderColor p-4 space-y-2">
+        {/* Footer: Export/Import + Theme toggle */}
+        <div className="border-t border-bolt-elements-borderColor p-4 space-y-3">
           <div className="flex gap-2">
-            <button
+            <Button
               onClick={handleExport}
-              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs rounded-md border border-bolt-elements-borderColor text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-1 transition-colors"
+              variant="outline"
+              size="sm"
+              className="flex-1 text-xs gap-1.5"
+              title="Export all chats as JSON"
             >
-              <div className="i-ph:download-simple" />
+              <div className="i-ph:download-simple text-sm" />
               Export
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={handleImport}
-              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs rounded-md border border-bolt-elements-borderColor text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-1 transition-colors"
+              variant="outline"
+              size="sm"
+              className="flex-1 text-xs gap-1.5"
+              title="Import chats from JSON"
             >
-              <div className="i-ph:upload-simple" />
+              <div className="i-ph:upload-simple text-sm" />
               Import
-            </button>
+            </Button>
           </div>
-          <div className="flex items-center justify-between">
-            <span className="text-bolt-elements-textTertiary text-xs">{list.length} chat(s)</span>
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-bolt-elements-textTertiary">
+              {list.length} {list.length === 1 ? 'chat' : 'chats'}
+            </span>
             <ThemeSwitch className="ml-auto" />
           </div>
         </div>

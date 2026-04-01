@@ -1,5 +1,6 @@
 // see https://docs.anthropic.com/en/docs/about-claude/models
-export const MAX_TOKENS = 8192;
+// Extended output: claude-3-7-sonnet supports up to 128K tokens with output-128k-2025-02-19 beta
+export const MAX_TOKENS = 32768;
 
 // limits the number of model responses that can be returned in a single request
-export const MAX_RESPONSE_SEGMENTS = 2;
+export const MAX_RESPONSE_SEGMENTS = 8;

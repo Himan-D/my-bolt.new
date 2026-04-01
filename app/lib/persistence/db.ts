@@ -13,7 +13,15 @@ export interface IProviderSetting {
 export interface CloudSettings {
   supabaseUrl: string;
   supabaseAnonKey: string;
+  supabaseServiceRoleKey: string;
+  clerkPublishableKey: string;
+  clerkSecretKey: string;
+  mcpServerUrl: string;
+  mcpApiKey: string;
   netlifyToken: string;
+  githubToken: string;
+  githubRepo: string;
+  githubPrivate: boolean;
 }
 
 export interface UserSettings {
@@ -34,14 +42,22 @@ const DEFAULT_SETTINGS: UserSettings = {
   cloud: {
     supabaseUrl: '',
     supabaseAnonKey: '',
+    supabaseServiceRoleKey: '',
+    clerkPublishableKey: '',
+    clerkSecretKey: '',
+    mcpServerUrl: '',
+    mcpApiKey: '',
     netlifyToken: '',
+    githubToken: '',
+    githubRepo: 'hima-app',
+    githubPrivate: true,
   },
 };
 
 // this is used at the top level and never rejects
 export async function openDatabase(): Promise<IDBDatabase | undefined> {
   return new Promise((resolve) => {
-    // Bumped to version 3 to rebuild the urlId index without the unique constraint
+    // bumped to version 3 to rebuild the urlId index without the unique constraint
     const request = indexedDB.open('boltHistory', 3);
 
     request.onupgradeneeded = (event: IDBVersionChangeEvent) => {
@@ -200,11 +216,7 @@ async function getUrlIds(db: IDBDatabase): Promise<string[]> {
 
 // ==================== NEW FEATURES ====================
 
-export async function updateChatDescription(
-  db: IDBDatabase,
-  id: string,
-  newDescription: string,
-): Promise<void> {
+export async function updateChatDescription(db: IDBDatabase, id: string, newDescription: string): Promise<void> {
   return new Promise((resolve, reject) => {
     const transaction = db.transaction('chats', 'readwrite');
     const store = transaction.objectStore('chats');
@@ -238,13 +250,7 @@ export async function duplicateChat(db: IDBDatabase, id: string): Promise<string
   const nextId = await getNextId(db);
   const newUrlId = original.urlId ? await getUrlId(db, `${original.urlId}-copy`) : undefined;
 
-  await setMessages(
-    db,
-    nextId,
-    [...original.messages],
-    newUrlId,
-    `${original.description || 'Chat'} (copy)`,
-  );
+  await setMessages(db, nextId, [...original.messages], newUrlId, `${original.description || 'Chat'} (copy)`);
 
   return newUrlId || nextId;
 }

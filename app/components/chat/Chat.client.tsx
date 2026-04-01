@@ -13,6 +13,7 @@ import { fileModificationsToHTML } from '~/utils/diff';
 import { cubicEasingFn } from '~/utils/easings';
 import { createScopedLogger, renderLogger } from '~/utils/logger';
 import { BaseChat } from './BaseChat';
+import { extractTextFromPDF } from '~/utils/pdf';
 
 const toastAnimation = cssTransition({
   enter: 'animated fadeInRight',
@@ -68,6 +69,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const [chatStarted, setChatStarted] = useState(initialMessages.length > 0);
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
 
   const { showChat } = useStore(chatStore);
   const selectedProvider = useStore(selectedProviderStore);
@@ -76,20 +78,41 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
 
   const [animationScope, animate] = useAnimate();
 
-  // Get the API key for the selected provider
+  // get the API key for the selected provider
   const currentProviderConfig = allProviders.find((p) => p.name === selectedProvider);
   const currentApiKey = currentProviderConfig?.apiKey || '';
 
   const { messages, isLoading, input, handleInputChange, setInput, stop, append } = useChat({
     api: '/api/chat',
     body: {
-      provider: currentApiKey ? selectedProvider : undefined,
-      model: currentApiKey ? selectedModel : undefined,
+      provider: selectedProvider,
+      model: selectedModel,
       apiKey: currentApiKey || undefined,
     },
     onError: (error) => {
       logger.error('Request failed\n\n', error);
-      toast.error('There was an error processing your request');
+
+      let errorMessage = 'There was an error processing your request';
+
+      if (error.message) {
+        try {
+          const errorData = JSON.parse(error.message);
+
+          if (errorData.error?.includes('invalid x-api-key') || errorData.data?.error?.message?.includes('x-api-key')) {
+            errorMessage = 'Invalid API Key. Please check your .env.local, .dev.vars, or settings.';
+          } else if (errorData.error) {
+            errorMessage = errorData.error;
+          }
+        } catch {
+          if (error.message.includes('401')) {
+            errorMessage = 'Invalid API Key (401). Please check your credentials.';
+          } else {
+            errorMessage = error.message;
+          }
+        }
+      }
+
+      toast.error(errorMessage);
     },
     onFinish: () => {
       logger.debug('Finished streaming');
@@ -156,10 +179,28 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
     setChatStarted(true);
   };
 
+  const onFileUpload = (file: File) => {
+    if (uploadedFiles.some((f) => f.name === file.name)) {
+      toast.info('File already attached');
+      return;
+    }
+
+    setUploadedFiles((prev) => [...prev, file]);
+  };
+
+  const onRemoveFile = (index: number) => {
+    setUploadedFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const sendMessage = async (_event: React.UIEvent, messageInput?: string) => {
     const _input = messageInput || input;
 
-    if (_input.length === 0 || isLoading) {
+    if (!(_input.trim().length > 0 || uploadedFiles.length > 0) || isLoading) {
+      return;
+    }
+
+    if (selectedProvider !== 'Anthropic' && !currentApiKey) {
+      toast.error('Please set your API key in settings');
       return;
     }
 
@@ -171,17 +212,51 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
 
     runAnimation();
 
+    let fileContentPrompt = '';
+    const imageDataParts: Array<{ type: 'image'; image: string; mimeType: string; name: string }> = [];
+
+    if (uploadedFiles.length > 0) {
+      for (const file of uploadedFiles) {
+        if (file.type === 'application/pdf') {
+          const content = await extractTextFromPDF(file);
+          fileContentPrompt += `\n\nFile: ${file.name}\nContent:\n${content}`;
+        } else if (file.type.startsWith('image/')) {
+          const buffer = await file.arrayBuffer();
+          const bytes = new Uint8Array(buffer);
+          let binary = '';
+
+          for (let i = 0; i < bytes.byteLength; i++) {
+            binary += String.fromCharCode(bytes[i]);
+          }
+
+          const base64 = btoa(binary);
+          imageDataParts.push({ type: 'image', image: base64, mimeType: file.type, name: file.name });
+        } else {
+          const content = await file.text();
+          fileContentPrompt += `\n\nFile: ${file.name}\nContent:\n${content}`;
+        }
+      }
+    }
+
+    const fullInput = _input + fileContentPrompt;
+
+    const imageCaption =
+      imageDataParts.length > 0
+        ? `\n\n[${imageDataParts.length} image${imageDataParts.length > 1 ? 's' : ''} attached: ${imageDataParts.map((p) => p.name).join(', ')}]`
+        : '';
+
     if (fileModifications !== undefined) {
       const diff = fileModificationsToHTML(fileModifications);
 
-      append({ role: 'user', content: `${diff}\n\n${_input}` });
+      append({ role: 'user', content: `${diff}\n\n${fullInput}${imageCaption}` });
 
       workbenchStore.resetAllFileModifications();
     } else {
-      append({ role: 'user', content: _input });
+      append({ role: 'user', content: `${fullInput}${imageCaption}` });
     }
 
     setInput('');
+    setUploadedFiles([]);
 
     resetEnhancer();
 
@@ -205,6 +280,9 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
       scrollRef={scrollRef}
       handleInputChange={handleInputChange}
       handleStop={abort}
+      onFileUpload={onFileUpload}
+      uploadedFiles={uploadedFiles}
+      onRemoveFile={onRemoveFile}
       messages={messages.map((message, i) => {
         if (message.role === 'user') {
           return message;

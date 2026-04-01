@@ -21,9 +21,7 @@ async function enhancerAction({ context, request }: ActionFunctionArgs) {
   const { message, provider, model, apiKey } = await request.json<EnhancerRequestBody>();
 
   const modelConfig: ModelConfig | undefined =
-    provider && model && apiKey
-      ? { provider: provider as ModelConfig['provider'], modelId: model, apiKey }
-      : undefined;
+    provider && model ? { provider: provider as ModelConfig['provider'], modelId: model, apiKey } : undefined;
 
   try {
     const result = await streamText(
@@ -32,6 +30,17 @@ async function enhancerAction({ context, request }: ActionFunctionArgs) {
           role: 'user',
           content: stripIndents`
           I want you to improve the user prompt that is wrapped in \`<original_prompt>\` tags.
+
+          Optimize the improved prompt for production-grade output quality. Prioritize:
+          - clear acceptance criteria
+          - architecture and maintainability expectations
+          - type safety and validation
+          - framework selection clarity (prefer LangGraph.js for multi-agent orchestration when relevant)
+          - backend API contract quality (request/response schemas and error handling)
+          - backend security and reliability (authz, rate limiting, idempotency when relevant)
+          - data layer robustness (transactions, migration awareness, pagination for lists)
+          - accessibility and performance requirements when UI is involved
+          - testing expectations for non-trivial logic
 
           IMPORTANT: Only respond with the improved prompt and nothing else!
 

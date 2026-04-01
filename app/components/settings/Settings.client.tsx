@@ -27,9 +27,7 @@ export function Settings({ open, onClose }: SettingsProps) {
             const defaults = providersStore.get();
             const merged = defaults.map((def) => {
               const saved = settings.providers.find((p) => p.name === def.name);
-              return saved
-                ? { ...def, apiKey: saved.apiKey ?? '', enabled: saved.enabled ?? def.enabled }
-                : def;
+              return saved ? { ...def, apiKey: saved.apiKey ?? '', enabled: saved.enabled ?? def.enabled } : def;
             });
             setProviders(merged);
           }
@@ -43,10 +41,10 @@ export function Settings({ open, onClose }: SettingsProps) {
           }
 
           if (settings.cloud) {
-            setCloud(settings.cloud);
+            setCloud({ ...cloudStore.get(), ...settings.cloud });
           }
         })
-        .catch(() => {});
+        .catch(() => undefined);
     }
   }, [open]);
 
@@ -203,6 +201,7 @@ export function Settings({ open, onClose }: SettingsProps) {
                         value={selectedProvider}
                         onChange={(e) => {
                           setSelectedProvider(e.target.value);
+
                           const prov = providers.find((p) => p.name === e.target.value);
 
                           if (prov && prov.models.length > 0) {
@@ -262,9 +261,56 @@ export function Settings({ open, onClose }: SettingsProps) {
                           onChange={(e) => setCloud({ ...cloud, supabaseAnonKey: e.target.value })}
                           className="w-full px-3 py-2 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary text-sm placeholder-bolt-elements-textTertiary focus:outline-none focus:border-bolt-elements-textPrimary transition-colors"
                         />
+                        <input
+                          type="password"
+                          placeholder="Supabase Service Role Key"
+                          value={cloud.supabaseServiceRoleKey}
+                          onChange={(e) => setCloud({ ...cloud, supabaseServiceRoleKey: e.target.value })}
+                          className="w-full px-3 py-2 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary text-sm placeholder-bolt-elements-textTertiary focus:outline-none focus:border-bolt-elements-textPrimary transition-colors"
+                        />
                       </div>
                     </div>
-                    
+
+                    <div className="p-4 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1">
+                      <h3 className="font-medium text-bolt-elements-textPrimary mb-3">Clerk (Authentication)</h3>
+                      <div className="space-y-3">
+                        <input
+                          type="text"
+                          placeholder="Clerk Publishable Key"
+                          value={cloud.clerkPublishableKey}
+                          onChange={(e) => setCloud({ ...cloud, clerkPublishableKey: e.target.value })}
+                          className="w-full px-3 py-2 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary text-sm placeholder-bolt-elements-textTertiary focus:outline-none focus:border-bolt-elements-textPrimary transition-colors"
+                        />
+                        <input
+                          type="password"
+                          placeholder="Clerk Secret Key"
+                          value={cloud.clerkSecretKey}
+                          onChange={(e) => setCloud({ ...cloud, clerkSecretKey: e.target.value })}
+                          className="w-full px-3 py-2 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary text-sm placeholder-bolt-elements-textTertiary focus:outline-none focus:border-bolt-elements-textPrimary transition-colors"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="p-4 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1">
+                      <h3 className="font-medium text-bolt-elements-textPrimary mb-3">MCP (Tool Integration)</h3>
+                      <div className="space-y-3">
+                        <input
+                          type="text"
+                          placeholder="MCP Server URL"
+                          value={cloud.mcpServerUrl}
+                          onChange={(e) => setCloud({ ...cloud, mcpServerUrl: e.target.value })}
+                          className="w-full px-3 py-2 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary text-sm placeholder-bolt-elements-textTertiary focus:outline-none focus:border-bolt-elements-textPrimary transition-colors"
+                        />
+                        <input
+                          type="password"
+                          placeholder="MCP API Key"
+                          value={cloud.mcpApiKey}
+                          onChange={(e) => setCloud({ ...cloud, mcpApiKey: e.target.value })}
+                          className="w-full px-3 py-2 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary text-sm placeholder-bolt-elements-textTertiary focus:outline-none focus:border-bolt-elements-textPrimary transition-colors"
+                        />
+                      </div>
+                    </div>
+
                     <div className="p-4 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1">
                       <h3 className="font-medium text-bolt-elements-textPrimary mb-3">Netlify (Deployment)</h3>
                       <input
@@ -274,6 +320,34 @@ export function Settings({ open, onClose }: SettingsProps) {
                         onChange={(e) => setCloud({ ...cloud, netlifyToken: e.target.value })}
                         className="w-full px-3 py-2 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary text-sm placeholder-bolt-elements-textTertiary focus:outline-none focus:border-bolt-elements-textPrimary transition-colors"
                       />
+                    </div>
+
+                    <div className="p-4 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1">
+                      <h3 className="font-medium text-bolt-elements-textPrimary mb-3">GitHub (Project Transfer)</h3>
+                      <div className="space-y-3">
+                        <input
+                          type="password"
+                          placeholder="GitHub Personal Access Token"
+                          value={cloud.githubToken}
+                          onChange={(e) => setCloud({ ...cloud, githubToken: e.target.value })}
+                          className="w-full px-3 py-2 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary text-sm placeholder-bolt-elements-textTertiary focus:outline-none focus:border-bolt-elements-textPrimary transition-colors"
+                        />
+                        <input
+                          type="text"
+                          placeholder="Default Repo Name (e.g. hima-app)"
+                          value={cloud.githubRepo}
+                          onChange={(e) => setCloud({ ...cloud, githubRepo: e.target.value })}
+                          className="w-full px-3 py-2 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary text-sm placeholder-bolt-elements-textTertiary focus:outline-none focus:border-bolt-elements-textPrimary transition-colors"
+                        />
+                        <label className="flex items-center gap-2 text-sm text-bolt-elements-textSecondary">
+                          <input
+                            type="checkbox"
+                            checked={cloud.githubPrivate}
+                            onChange={(e) => setCloud({ ...cloud, githubPrivate: e.target.checked })}
+                          />
+                          Create repository as private
+                        </label>
+                      </div>
                     </div>
                   </div>
                 )}

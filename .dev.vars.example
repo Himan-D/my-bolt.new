@@ -1,0 +1,30 @@
+# Hima - API Configuration Example
+# Copy this file to .dev.vars and fill in your actual API keys
+# The app supports multiple LLM providers; you can use any of them
+
+# Anthropic (Claude models)
+# Get your key from: https://console.anthropic.com/
+# ANTHROPIC_API_KEY=sk-ant-...
+
+# OpenAI (GPT models)
+# Get your key from: https://platform.openai.com/api-keys
+# OPENAI_API_KEY=sk-...
+
+# Google (Gemini models)
+# Get your key from: https://aistudio.google.com/app/apikey
+# GOOGLE_API_KEY=AIza...
+
+# OpenRouter (Access to 200+ models including Claude, GPT, Llama, etc.)
+# Get your key from: https://openrouter.ai/keys
+# OPENROUTER_API_KEY=sk-or-...
+
+# Priority Order (for automatic fallback):
+# 1. Anthropic
+# 2. OpenRouter
+# 3. OpenAI
+# 4. Google
+
+# Usage:
+# - Set at least ONE of the above API keys
+# - The app will automatically detect and use the first available key
+# - You can override the provider in the UI settings or via API request body

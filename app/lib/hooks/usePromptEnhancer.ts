@@ -1,4 +1,3 @@
-import { useStore } from '@nanostores/react';
 import { useState } from 'react';
 import { createScopedLogger } from '~/utils/logger';
 import { providersStore, selectedProviderStore, selectedModelStore } from '~/lib/stores/providers';
@@ -28,7 +27,9 @@ export function usePromptEnhancer() {
       method: 'POST',
       body: JSON.stringify({
         message: input,
-        ...(apiKey ? { provider: selectedProvider, model: selectedModel, apiKey } : {}),
+        provider: selectedProvider,
+        model: selectedModel,
+        apiKey: apiKey || undefined,
       }),
     });
 
@@ -60,18 +61,20 @@ export function usePromptEnhancer() {
         }
       } catch (error) {
         _error = error;
-        setInput(originalInput);
       } finally {
         if (_error) {
           logger.error(_error);
+          setInput(originalInput);
         }
 
         setEnhancingPrompt(false);
         setPromptEnhanced(true);
 
-        setTimeout(() => {
-          setInput(_input);
-        });
+        if (!_error && _input) {
+          setTimeout(() => {
+            setInput(_input);
+          });
+        }
       }
     }
   };

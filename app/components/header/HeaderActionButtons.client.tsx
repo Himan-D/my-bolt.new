@@ -13,7 +13,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
 
   return (
     <div className="flex">
-      <div className="flex border border-bolt-elements-borderColor rounded-md overflow-hidden">
+      <div className="flex border border-bolt-elements-borderColor rounded-lg overflow-hidden bg-bolt-elements-background-depth-2">
         <Button
           active={showChat}
           disabled={!canHideChat}
@@ -53,7 +53,7 @@ interface ButtonProps {
 function Button({ active = false, disabled = false, children, onClick }: ButtonProps) {
   return (
     <button
-      className={classNames('flex items-center p-1.5', {
+      className={classNames('flex items-center p-2', {
         'bg-bolt-elements-item-backgroundDefault hover:bg-bolt-elements-item-backgroundActive text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary':
           !active,
         'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent': active && !disabled,

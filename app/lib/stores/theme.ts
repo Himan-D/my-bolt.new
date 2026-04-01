@@ -8,11 +8,11 @@ export function themeIsDark() {
   return themeStore.get() === 'dark';
 }
 
-export const DEFAULT_THEME = 'light';
+export const DEFAULT_THEME: Theme = 'light';
 
 export const themeStore = atom<Theme>(initStore());
 
-function initStore() {
+function initStore(): Theme {
   if (!import.meta.env.SSR) {
     const persistedTheme = localStorage.getItem(kTheme) as Theme | undefined;
     const themeAttribute = document.querySelector('html')?.getAttribute('data-theme');

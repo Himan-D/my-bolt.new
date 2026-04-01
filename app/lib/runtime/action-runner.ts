@@ -8,6 +8,73 @@ import type { ActionCallbackData } from './message-parser';
 
 const logger = createScopedLogger('ActionRunner');
 
+const OPEN_SHELL_ALLOWED_HOSTS = new Set([
+  'registry.npmjs.org',
+  'api.github.com',
+  'github.com',
+  'api.openai.com',
+  'api.anthropic.com',
+  'openrouter.ai',
+  'generativelanguage.googleapis.com',
+]);
+
+const BLOCKED_SHELL_PATTERNS: RegExp[] = [
+  /(^|\s)sudo(\s|$)/i,
+  /(^|\s)su(\s|$)/i,
+  /rm\s+-rf\s+\//i,
+  /mkfs\./i,
+  /dd\s+if=/i,
+  /chmod\s+777\s+\//i,
+  /\bcurl\b[^\n]*\|[^\n]*\bsh\b/i,
+  /\bwget\b[^\n]*\|[^\n]*\bsh\b/i,
+];
+
+function extractHostsFromCommand(command: string) {
+  const hosts: string[] = [];
+  const urlPattern = /https?:\/\/([^\s/"']+)/gi;
+
+  let match = urlPattern.exec(command);
+
+  while (match) {
+    hosts.push(match[1].toLowerCase());
+    match = urlPattern.exec(command);
+  }
+
+  return hosts;
+}
+
+function validateShellCommand(command: string): string | null {
+  for (const pattern of BLOCKED_SHELL_PATTERNS) {
+    if (pattern.test(command)) {
+      return `Blocked by sandbox policy: command matches restricted pattern (${pattern})`;
+    }
+  }
+
+  const hosts = extractHostsFromCommand(command);
+
+  for (const host of hosts) {
+    if (!OPEN_SHELL_ALLOWED_HOSTS.has(host)) {
+      return `Blocked by sandbox policy: outbound host '${host}' is not allowlisted`;
+    }
+  }
+
+  return null;
+}
+
+function validateFilePath(filePath: string): string | null {
+  const normalized = nodePath.posix.normalize(filePath);
+
+  if (nodePath.posix.isAbsolute(normalized)) {
+    return `Blocked by sandbox policy: absolute paths are not allowed (${filePath})`;
+  }
+
+  if (normalized.startsWith('../') || normalized.includes('/../') || normalized === '..') {
+    return `Blocked by sandbox policy: parent directory traversal is not allowed (${filePath})`;
+  }
+
+  return null;
+}
+
 export type ActionStatus = 'pending' | 'running' | 'complete' | 'aborted' | 'failed';
 
 export type BaseActionState = BoltAction & {
@@ -101,6 +168,22 @@ export class ActionRunner {
     this.#updateAction(actionId, { status: 'running' });
 
     try {
+      if (action.type === 'shell') {
+        const commandError = validateShellCommand(action.content);
+
+        if (commandError) {
+          throw new Error(commandError);
+        }
+      }
+
+      if (action.type === 'file') {
+        const fileError = validateFilePath(action.filePath);
+
+        if (fileError) {
+          throw new Error(fileError);
+        }
+      }
+
       switch (action.type) {
         case 'shell': {
           await this.#runShellAction(action);
@@ -114,7 +197,8 @@ export class ActionRunner {
 
       this.#updateAction(actionId, { status: action.abortSignal.aborted ? 'aborted' : 'complete' });
     } catch (error) {
-      this.#updateAction(actionId, { status: 'failed', error: 'Action failed' });
+      const message = error instanceof Error ? error.message : 'Action failed';
+      this.#updateAction(actionId, { status: 'failed', error: message });
 
       // re-throw the error to be caught in the promise chain
       throw error;
@@ -128,7 +212,7 @@ export class ActionRunner {
 
     const webcontainer = await this.#webcontainer;
 
-    const process = await webcontainer.spawn('jsh', ['-c', action.content], {
+    const process = await webcontainer.spawn('/bin/jsh', ['-c', action.content], {
       env: { npm_config_yes: true },
     });
 
