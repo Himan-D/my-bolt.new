@@ -1,6 +1,6 @@
 import { WebContainer } from '@webcontainer/api';
 import { map, type MapStore } from 'nanostores';
-import * as nodePath from 'node:path';
+import { normalize, isAbsolute, dirname } from '~/utils/path';
 import type { BoltAction } from '~/types/actions';
 import { createScopedLogger } from '~/utils/logger';
 import { unreachable } from '~/utils/unreachable';
@@ -62,9 +62,9 @@ function validateShellCommand(command: string): string | null {
 }
 
 function validateFilePath(filePath: string): string | null {
-  const normalized = nodePath.posix.normalize(filePath);
+  const normalized = normalize(filePath);
 
-  if (nodePath.posix.isAbsolute(normalized)) {
+  if (isAbsolute(normalized)) {
     return `Blocked by sandbox policy: absolute paths are not allowed (${filePath})`;
   }
 
@@ -240,7 +240,7 @@ export class ActionRunner {
 
     const webcontainer = await this.#webcontainer;
 
-    let folder = nodePath.dirname(action.filePath);
+    let folder = dirname(action.filePath);
 
     // remove trailing slashes
     folder = folder.replace(/\/+$/g, '');

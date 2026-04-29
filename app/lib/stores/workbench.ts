@@ -1,6 +1,11 @@
 import { atom, map, type MapStore, type ReadableAtom, type WritableAtom } from 'nanostores';
 import JSZip from 'jszip';
-import * as nodePath from 'node:path';
+
+function getDirname(filepath: string): string {
+  const normalized = filepath.replace(/\\/g, '/');
+  const lastSlash = normalized.lastIndexOf('/');
+  return lastSlash === -1 ? '.' : normalized.slice(0, lastSlash) || '/';
+}
 import type { EditorDocument, ScrollPosition } from '~/components/editor/codemirror/CodeMirrorEditor';
 import { ActionRunner } from '~/lib/runtime/action-runner';
 import type { ActionCallbackData, ArtifactCallbackData } from '~/lib/runtime/message-parser';
@@ -153,7 +158,7 @@ export class WorkbenchStore {
     const wc = await webcontainer;
 
     for (const file of result.files) {
-      const folder = nodePath.posix.dirname(file.path);
+      const folder = getDirname(file.path);
 
       if (folder && folder !== '.') {
         await wc.fs.mkdir(folder, { recursive: true });
