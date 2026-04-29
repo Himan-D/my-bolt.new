@@ -1,8 +1,9 @@
 import { json, type LinksFunction, type LoaderFunctionArgs } from '@remix-run/node';
 import { useStore } from '@nanostores/react';
-import { Links, Meta, Outlet, Scripts, ScrollRestoration } from '@remix-run/react';
+import { Links, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData } from '@remix-run/react';
 import tailwindReset from '@unocss/reset/tailwind-compat.css?url';
 import { themeStore } from './lib/stores/theme';
+import { initializeProvidersFromEnv } from './lib/stores/providers';
 import { stripIndents } from './utils/stripIndent';
 import { createHead } from 'remix-island';
 import { useEffect } from 'react';
@@ -62,12 +63,29 @@ export const Head = createHead(() => (
   </>
 ));
 
-export const loader = (_args: LoaderFunctionArgs) => {
-  return json({});
+export const loader = async ({ context }: LoaderFunctionArgs) => {
+  return json({
+    ENV: {
+      OPENAI_API_KEY: (context as any)?.OPENAI_API_KEY || process.env.OPENAI_API_KEY || '',
+      GOOGLE_API_KEY: (context as any)?.GOOGLE_API_KEY || process.env.GOOGLE_API_KEY || '',
+      ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || '',
+      OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY || '',
+      SUPABASE_URL: (context as any)?.SUPABASE_URL || process.env.SUPABASE_URL || '',
+      SUPABASE_ANON_KEY: (context as any)?.SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '',
+    },
+  });
 };
 
 export default function App() {
+  const data = useLoaderData<typeof loader>();
   const theme = useStore(themeStore);
+
+  useEffect(() => {
+    if (data?.ENV) {
+      (window as any).ENV = data.ENV;
+      initializeProvidersFromEnv();
+    }
+  }, [data]);
 
   useEffect(() => {
     document.querySelector('html')?.setAttribute('data-theme', theme);

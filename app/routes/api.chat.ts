@@ -5,17 +5,7 @@ import { getSystemPrompt } from '~/lib/.server/llm/prompts';
 
 interface AppContext {
   OPENAI_API_KEY?: string;
-}
-
-export async function loader(_args: LoaderFunctionArgs) {
-  return new Response(null, {
-    status: 405,
-    statusText: 'Method Not Allowed',
-  });
-}
-
-export async function action(args: ActionFunctionArgs) {
-  return chatAction(args);
+  GOOGLE_API_KEY?: string;
 }
 
 interface ChatRequestBody {
@@ -25,27 +15,32 @@ interface ChatRequestBody {
   apiKey?: string;
 }
 
-async function chatAction(args: ActionFunctionArgs) {
+export async function action(args: ActionFunctionArgs) {
   const { request } = args;
   const context = (args as any).context as AppContext | undefined;
   const { messages, provider, model, apiKey } = await request.json<ChatRequestBody>();
 
-  let resolvedApiKey = apiKey || context?.OPENAI_API_KEY;
+  let resolvedApiKey = apiKey;
 
   if (!resolvedApiKey) {
     if (provider === 'OpenAI' || !provider) {
-      resolvedApiKey = process.env.OPENAI_API_KEY;
+      resolvedApiKey = context?.OPENAI_API_KEY || process.env.OPENAI_API_KEY;
     } else if (provider === 'Anthropic') {
       resolvedApiKey = process.env.ANTHROPIC_API_KEY;
     } else if (provider === 'Google') {
-      resolvedApiKey = process.env.GOOGLE_API_KEY;
+      resolvedApiKey = context?.GOOGLE_API_KEY || process.env.GOOGLE_API_KEY;
     } else if (provider === 'OpenRouter') {
       resolvedApiKey = process.env.OPENROUTER_API_KEY;
     }
   }
 
   if (!resolvedApiKey) {
-    resolvedApiKey = process.env.OPENAI_API_KEY || process.env.ANTHROPIC_API_KEY || '';
+    resolvedApiKey =
+      context?.OPENAI_API_KEY ||
+      context?.GOOGLE_API_KEY ||
+      process.env.OPENAI_API_KEY ||
+      process.env.GOOGLE_API_KEY ||
+      '';
   }
 
   if (!resolvedApiKey) {

@@ -5,10 +5,12 @@ import { readFileSync } from 'fs';
 dotenvConfig({ path: './.env.local', override: true });
 const envParsed = parse(readFileSync('./.env.local'));
 const OPENAI_API_KEY = envParsed.OPENAI_API_KEY || process.env.OPENAI_API_KEY;
+const GOOGLE_API_KEY = envParsed.GOOGLE_API_KEY || process.env.GOOGLE_API_KEY;
 const SUPABASE_URL = envParsed.SUPABASE_URL || process.env.SUPABASE_URL;
 const SUPABASE_ANON_KEY = envParsed.SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
 
 console.log('Loaded API key:', OPENAI_API_KEY ? 'yes' : 'no');
+console.log('Loaded Google key:', GOOGLE_API_KEY ? 'yes' : 'no');
 console.log('Loaded Supabase:', SUPABASE_URL ? 'yes' : 'no');
 
 import { createRequestHandler } from '@remix-run/express';
@@ -50,6 +52,7 @@ app.all(
       : await import('./build/server/index.js'),
     getLoadContext: () => ({
       OPENAI_API_KEY,
+      GOOGLE_API_KEY,
       SUPABASE_URL,
       SUPABASE_ANON_KEY,
     }),
