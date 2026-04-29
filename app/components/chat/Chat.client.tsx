@@ -205,11 +205,6 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
       return;
     }
 
-    if (selectedProvider !== 'Anthropic' && !currentApiKey) {
-      toast.error('Please set your API key in settings');
-      return;
-    }
-
     await workbenchStore.saveAllFiles();
 
     const fileModifications = workbenchStore.getFileModifcations();
