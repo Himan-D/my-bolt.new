@@ -33,12 +33,12 @@ export interface UserSettings {
 
 const DEFAULT_SETTINGS: UserSettings = {
   providers: [
-    { name: 'Anthropic', apiKey: '', enabled: true },
-    { name: 'OpenAI', apiKey: '', enabled: false },
+    { name: 'OpenAI', apiKey: '', enabled: true },
+    { name: 'Anthropic', apiKey: '', enabled: false },
     { name: 'Google', apiKey: '', enabled: false },
   ],
-  selectedProvider: 'Anthropic',
-  selectedModel: 'claude-sonnet-4-6',
+  selectedProvider: 'OpenAI',
+  selectedModel: 'gpt-4o',
   cloud: {
     supabaseUrl: '',
     supabaseAnonKey: '',

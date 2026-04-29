@@ -101,8 +101,10 @@ export default defineConfig({
   shortcuts: {
     'bolt-ease-cubic-bezier': 'ease-[cubic-bezier(0.4,0,0.2,1)]',
     'transition-theme': 'transition-[background-color,border-color,color] duration-150 bolt-ease-cubic-bezier',
-    kdb: 'bg-bolt-elements-code-background text-bolt-elements-code-text py-1 px-1.5 rounded-md',
-    'max-w-chat': 'max-w-[var(--chat-max-width)]',
+    kdb: 'bg-zinc-800 text-zinc-300 py-1 px-1.5 rounded-md text-xs',
+    'max-w-chat': 'max-w-[640px]',
+    'animate-fade-in': 'animate-[fadeIn_0.3s_ease-out]',
+    'animate-fade-in-delayed': 'animate-[fadeIn_0.5s_0.2s_ease-out_both]',
   },
   rules: [
     /**

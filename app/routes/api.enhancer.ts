@@ -1,4 +1,4 @@
-import { type ActionFunctionArgs } from '@remix-run/cloudflare';
+import { type ActionFunctionArgs } from '@remix-run/node';
 import { StreamingTextResponse, parseStreamPart } from 'ai';
 import { streamText, type ModelConfig } from '~/lib/.server/llm/stream-text';
 import { stripIndents } from '~/utils/stripIndent';
@@ -22,6 +22,8 @@ async function enhancerAction({ context, request }: ActionFunctionArgs) {
 
   const modelConfig: ModelConfig | undefined =
     provider && model ? { provider: provider as ModelConfig['provider'], modelId: model, apiKey } : undefined;
+
+  const env = process.env || {};
 
   try {
     const result = await streamText(
@@ -50,7 +52,7 @@ async function enhancerAction({ context, request }: ActionFunctionArgs) {
         `,
         },
       ],
-      context.cloudflare.env,
+      env,
       undefined,
       modelConfig,
     );

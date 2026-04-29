@@ -1,8 +1,11 @@
-import { type ActionFunctionArgs, type LoaderFunctionArgs } from '@remix-run/cloudflare';
-import { MAX_RESPONSE_SEGMENTS, MAX_TOKENS } from '~/lib/.server/llm/constants';
-import { CONTINUE_PROMPT } from '~/lib/.server/llm/prompts';
-import { streamText, type Messages, type StreamingOptions, type ModelConfig } from '~/lib/.server/llm/stream-text';
-import SwitchableStream from '~/lib/.server/llm/switchable-stream';
+import type { ActionFunctionArgs, LoaderFunctionArgs } from '@remix-run/node';
+import { formatStreamPart } from 'ai';
+import { streamChatCompletion } from '~/lib/openai-client';
+import { getSystemPrompt } from '~/lib/.server/llm/prompts';
+
+interface AppContext {
+  OPENAI_API_KEY?: string;
+}
 
 export async function loader(_args: LoaderFunctionArgs) {
   return new Response(null, {
@@ -16,92 +19,100 @@ export async function action(args: ActionFunctionArgs) {
 }
 
 interface ChatRequestBody {
-  messages: Messages;
+  messages: { role: 'user' | 'assistant' | 'system'; content: string }[];
   provider?: string;
   model?: string;
   apiKey?: string;
 }
 
-async function chatAction({ context, request }: ActionFunctionArgs) {
+async function chatAction(args: ActionFunctionArgs) {
+  const { request } = args;
+  const context = (args as any).context as AppContext | undefined;
   const { messages, provider, model, apiKey } = await request.json<ChatRequestBody>();
 
-  const stream = new SwitchableStream();
+  let resolvedApiKey = apiKey || context?.OPENAI_API_KEY;
 
-  const modelConfig: ModelConfig | undefined =
-    provider && model ? { provider: provider as ModelConfig['provider'], modelId: model, apiKey } : undefined;
+  if (!resolvedApiKey) {
+    if (provider === 'OpenAI' || !provider) {
+      resolvedApiKey = process.env.OPENAI_API_KEY;
+    } else if (provider === 'Anthropic') {
+      resolvedApiKey = process.env.ANTHROPIC_API_KEY;
+    } else if (provider === 'Google') {
+      resolvedApiKey = process.env.GOOGLE_API_KEY;
+    } else if (provider === 'OpenRouter') {
+      resolvedApiKey = process.env.OPENROUTER_API_KEY;
+    }
+  }
+
+  if (!resolvedApiKey) {
+    resolvedApiKey = process.env.OPENAI_API_KEY || process.env.ANTHROPIC_API_KEY || '';
+  }
+
+  if (!resolvedApiKey) {
+    return new Response(
+      JSON.stringify({
+        error: 'No API key found. Please set OPENAI_API_KEY in .env file or pass apiKey in request.',
+        name: 'MissingAPIKey',
+        status: 401,
+      }),
+      { status: 401, headers: { 'Content-Type': 'application/json' } },
+    );
+  }
+
+  const useModel = model || 'gpt-4o';
+
+  const systemPrompt = getSystemPrompt();
+  const messagesWithSystem =
+    messages[0]?.role !== 'system' ? [{ role: 'system' as const, content: systemPrompt }, ...messages] : messages;
 
   try {
-    const options: StreamingOptions = {
-      toolChoice: 'none',
-      onFinish: async ({ text: content, finishReason }) => {
-        if (finishReason !== 'length') {
-          return stream.close();
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream({
+      async start(controller) {
+        try {
+          await streamChatCompletion({
+            messages: messagesWithSystem,
+            apiKey: resolvedApiKey,
+            model: useModel,
+            maxTokens: 16384,
+            onChunk: (chunk) => {
+              controller.enqueue(encoder.encode(formatStreamPart('text', chunk)));
+            },
+          });
+          controller.close();
+        } catch (error: any) {
+          controller.enqueue(encoder.encode(formatStreamPart('error', error.message || 'Unknown error')));
+          controller.close();
         }
-
-        if (stream.switches >= MAX_RESPONSE_SEGMENTS) {
-          throw Error('Cannot continue message: Maximum segments reached');
-        }
-
-        const switchesLeft = MAX_RESPONSE_SEGMENTS - stream.switches;
-
-        console.log(`Reached max token limit (${MAX_TOKENS}): Continuing message (${switchesLeft} switches left)`);
-
-        messages.push({ role: 'assistant', content });
-        messages.push({ role: 'user', content: CONTINUE_PROMPT });
-
-        const result = await streamText(messages, context.cloudflare.env, options, modelConfig);
-
-        return stream.switchSource(result.toAIStream());
       },
-    };
+    });
 
-    const result = await streamText(messages, context.cloudflare.env, options, modelConfig);
-
-    stream.switchSource(result.toAIStream());
-
-    return new Response(stream.readable, {
+    return new Response(stream, {
       status: 200,
       headers: {
         'Content-Type': 'text/plain; charset=utf-8',
+        'Cache-Control': 'no-cache',
+        Connection: 'keep-alive',
       },
     });
   } catch (error: any) {
     console.error('Chat Action Error:', error);
 
-    // check for API key related errors
-    let status = error.statusCode || 500;
+    let status = 500;
     let message = error.message || 'Internal Server Error';
 
-    if (status === 402 || message.includes('Payment Required')) {
-      status = 402;
-      message =
-        'OpenRouter account requires credits or billing setup. Add credits in OpenRouter dashboard, then retry generation.';
-    }
-
-    if (
-      message.includes('API key') ||
-      message.includes('ANTHROPIC_API_KEY') ||
-      message.includes('OPENAI_API_KEY') ||
-      message.includes('GOOGLE_API_KEY') ||
-      message.includes('OPENROUTER_API_KEY') ||
-      message.includes('authentication_error') ||
-      message.includes('invalid x-api-key')
-    ) {
+    if (error.status === 401 || message.includes('authentication')) {
       status = 401;
-
-      if (!message.includes('API key')) {
-        message = `Authentication failed: ${message}. Please check your API key configuration. See API_PROVIDERS.md for setup instructions.`;
-      }
+      message = 'Invalid API key. Please check your OPENAI_API_KEY.';
+    } else if (error.status === 402 || message.includes('billing') || message.includes('credits')) {
+      status = 402;
+      message = 'Insufficient credits. Please add credits to your OpenAI account.';
+    } else if (error.status === 429 || message.includes('rate limit')) {
+      status = 429;
+      message = 'Rate limit exceeded. Please try again later.';
     }
 
-    const errorResponse = {
-      error: message,
-      name: error.name,
-      status,
-      data: error.data || undefined,
-    };
-
-    return new Response(JSON.stringify(errorResponse), {
+    return new Response(JSON.stringify({ error: message, name: error.name || 'Error', status }), {
       status,
       headers: { 'Content-Type': 'application/json' },
     });

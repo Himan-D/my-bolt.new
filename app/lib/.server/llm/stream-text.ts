@@ -1,4 +1,4 @@
-import { streamText as _streamText, convertToCoreMessages } from 'ai';
+import { generateText, streamText as _streamText, convertToCoreMessages } from 'ai';
 import { getAPIKey } from '~/lib/.server/llm/api-key';
 import { getModel, type ProviderName } from '~/lib/.server/llm/providers';
 import { MAX_TOKENS } from './constants';
@@ -9,6 +9,7 @@ interface ToolResult<Name extends string, Args, Result> {
   toolName: Name;
   args: Args;
   result: Result;
+  state: 'result';
 }
 
 interface Message {
@@ -26,6 +27,8 @@ export interface ModelConfig {
   modelId?: string;
   apiKey?: string;
 }
+
+export type Env = Record<string, unknown>;
 
 const MEMORY_COMPACTION_TRIGGER_CHARS = 40_000;
 const MEMORY_COMPACTION_KEEP_RECENT_MESSAGES = 16;
@@ -105,7 +108,7 @@ export function streamText(messages: Messages, env: Env, options?: StreamingOpti
 
     if (!keyResult) {
       throw new Error(
-        'No API key found. Please set one of: ANTHROPIC_API_KEY, OPENAI_API_KEY, GOOGLE_API_KEY, or OPENROUTER_API_KEY in your .env.local or .dev.vars',
+        'No API key found. Please set one of: ANTHROPIC_API_KEY, OPENAI_API_KEY, GOOGLE_API_KEY, or OPENROUTER_API_KEY',
       );
     }
 
@@ -115,10 +118,10 @@ export function streamText(messages: Messages, env: Env, options?: StreamingOpti
 
     // use provider-specific default models
     const defaultModels: Record<ProviderName, string> = {
-      Anthropic: 'claude-3-7-sonnet-20250219',
+      Anthropic: 'claude-sonnet-4-6',
       OpenAI: 'gpt-4o',
       Google: 'gemini-2.5-pro-preview-03-25',
-      OpenRouter: 'anthropic/claude-3.7-sonnet',
+      OpenRouter: 'anthropic/claude-sonnet-4-6',
     };
 
     const modelId = defaultModels[provider];
@@ -128,7 +131,6 @@ export function streamText(messages: Messages, env: Env, options?: StreamingOpti
   const extraHeaders: Record<string, string> = {};
 
   if (provider === 'Anthropic') {
-    // enable extended output for all claude-3-5+ and claude-3-7 models
     extraHeaders['anthropic-beta'] = 'output-128k-2025-02-19';
   }
 
@@ -137,6 +139,7 @@ export function streamText(messages: Messages, env: Env, options?: StreamingOpti
     extraHeaders['X-Title'] = 'Hima';
   }
 
+  // Return same object for both streaming and non-streaming
   return _streamText({
     model,
     system: getSystemPrompt(),
@@ -145,4 +148,49 @@ export function streamText(messages: Messages, env: Env, options?: StreamingOpti
     messages: convertToCoreMessages(compactMessages(messages)),
     ...options,
   });
+}
+
+// Export model getter for generateText compatibility
+export function getModelForGenerateText(env: Env, modelConfig?: ModelConfig) {
+  let model;
+  let provider: ProviderName = 'Anthropic';
+
+  if (modelConfig?.provider && modelConfig?.modelId) {
+    const explicitApiKey = modelConfig.apiKey?.trim();
+    const envApiKeyResult = getAPIKey(env, modelConfig.provider);
+    const envApiKey = typeof envApiKeyResult === 'string' ? envApiKeyResult : null;
+    const resolvedApiKey = explicitApiKey || envApiKey;
+
+    if (!resolvedApiKey) {
+      throw new Error(
+        `No API key found for provider ${modelConfig.provider}. Please set it in Settings or environment variables.`,
+      );
+    }
+
+    model = getModel(modelConfig.provider, resolvedApiKey, modelConfig.modelId);
+    provider = modelConfig.provider;
+  } else {
+    const keyResult = getAPIKey(env);
+
+    if (!keyResult) {
+      throw new Error(
+        'No API key found. Please set one of: ANTHROPIC_API_KEY, OPENAI_API_KEY, GOOGLE_API_KEY, or OPENROUTER_API_KEY',
+      );
+    }
+
+    const apiKey = typeof keyResult === 'string' ? keyResult : keyResult.key;
+    provider = typeof keyResult === 'string' ? 'Anthropic' : keyResult.provider;
+
+    const defaultModels: Record<ProviderName, string> = {
+      Anthropic: 'claude-sonnet-4-6',
+      OpenAI: 'gpt-4o',
+      Google: 'gemini-2.5-pro-preview-03-25',
+      OpenRouter: 'anthropic/claude-sonnet-4-6',
+    };
+
+    const modelId = defaultModels[provider];
+    model = getModel(provider, apiKey, modelId);
+  }
+
+  return model;
 }

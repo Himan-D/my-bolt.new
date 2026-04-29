@@ -1,0 +1,1 @@
+"start": "node -r dotenv/config ./node_modules/.bin/remix-serve ./build/server/index.js"

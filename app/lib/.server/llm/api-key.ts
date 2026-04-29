@@ -43,7 +43,7 @@ export function getAPIKey(cloudflareEnv: Env, provider?: ProviderName): APIKeyRe
   }
 
   // fallback: try to find any available key in priority order
-  const providers: ProviderName[] = ['OpenRouter', 'Anthropic', 'OpenAI', 'Google'];
+  const providers: ProviderName[] = ['OpenAI', 'OpenRouter', 'Anthropic', 'Google'];
 
   for (const prov of providers) {
     const keyResult = getAPIKey(cloudflareEnv, prov);

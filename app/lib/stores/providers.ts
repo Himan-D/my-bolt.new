@@ -9,26 +9,26 @@ export interface ProviderInfo {
 
 const DEFAULT_PROVIDERS: ProviderInfo[] = [
   {
-    name: 'Anthropic',
-    apiKey: '',
-    enabled: true,
-    models: [
-      { id: 'claude-3-7-sonnet-20250219', label: 'Claude 3.7 Sonnet' },
-      { id: 'claude-3-5-sonnet-20241022', label: 'Claude 3.5 Sonnet' },
-      { id: 'claude-3-5-haiku-20241022', label: 'Claude 3.5 Haiku' },
-      { id: 'claude-3-opus-20240229', label: 'Claude 3 Opus' },
-    ],
-  },
-  {
     name: 'OpenAI',
     apiKey: '',
-    enabled: false,
+    enabled: true,
     models: [
       { id: 'gpt-4o', label: 'GPT-4o' },
       { id: 'gpt-4o-mini', label: 'GPT-4o Mini' },
       { id: 'o1', label: 'o1' },
       { id: 'o1-mini', label: 'o1 Mini' },
       { id: 'o3-mini', label: 'o3 Mini' },
+    ],
+  },
+  {
+    name: 'Anthropic',
+    apiKey: '',
+    enabled: false,
+    models: [
+      { id: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6' },
+      { id: 'claude-opus-4-6', label: 'Claude Opus 4.6' },
+      { id: 'claude-sonnet-4-5-20250929', label: 'Claude Sonnet 4.5' },
+      { id: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5' },
     ],
   },
   {
@@ -47,8 +47,8 @@ const DEFAULT_PROVIDERS: ProviderInfo[] = [
     apiKey: '',
     enabled: false,
     models: [
-      { id: 'anthropic/claude-3.7-sonnet', label: 'Claude 3.7 Sonnet' },
-      { id: 'anthropic/claude-3.5-sonnet', label: 'Claude 3.5 Sonnet' },
+      { id: 'anthropic/claude-sonnet-4-6', label: 'Claude Sonnet 4.6' },
+      { id: 'anthropic/claude-sonnet-4-5-20250929', label: 'Claude Sonnet 4.5' },
       { id: 'openai/gpt-4o', label: 'GPT-4o' },
       { id: 'openai/o3-mini', label: 'o3 Mini' },
       { id: 'google/gemini-2.0-flash-001', label: 'Gemini 2.0 Flash' },
@@ -59,8 +59,8 @@ const DEFAULT_PROVIDERS: ProviderInfo[] = [
 ];
 
 export const providersStore = atom<ProviderInfo[]>(DEFAULT_PROVIDERS);
-export const selectedProviderStore = atom<string>('Anthropic');
-export const selectedModelStore = atom<string>('claude-3-7-sonnet-20250219');
+export const selectedProviderStore = atom<string>('OpenAI');
+export const selectedModelStore = atom<string>('gpt-4o');
 
 export function getDefaultProviders() {
   return DEFAULT_PROVIDERS;

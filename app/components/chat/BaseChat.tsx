@@ -1,8 +1,7 @@
 import type { Message } from 'ai';
-import React, { type RefCallback } from 'react';
+import React, { type RefCallback, useState } from 'react';
 import { ClientOnly } from 'remix-utils/client-only';
 import { Menu } from '~/components/sidebar/Menu.client';
-import { IconButton } from '~/components/ui/IconButton';
 import { Workbench } from '~/components/workbench/Workbench.client';
 import { classNames } from '~/utils/classNames';
 import { Messages } from './Messages.client';
@@ -31,15 +30,15 @@ interface BaseChatProps {
 }
 
 const EXAMPLE_PROMPTS = [
-  { text: 'Full-stack SaaS with Supabase + Clerk', icon: 'i-ph:rocket-launch-duotone' },
-  { text: 'AI chatbot with streaming responses', icon: 'i-ph:robot-duotone' },
-  { text: 'Dashboard with real-time charts', icon: 'i-ph:chart-line-up-duotone' },
-  { text: 'Auth flow with Supabase + RLS', icon: 'i-ph:lock-key-duotone' },
-  { text: 'REST API with Hono + Zod validation', icon: 'i-ph:cloud-arrow-up-duotone' },
-  { text: 'Mobile-first e-commerce storefront', icon: 'i-ph:shopping-bag-duotone' },
+  { text: 'Build a full-stack SaaS app', desc: 'React + Supabase + Auth' },
+  { text: 'Create an AI chatbot', desc: 'Streaming responses' },
+  { text: 'Make a dashboard', desc: 'Real-time charts' },
+  { text: 'Build an API', desc: 'REST endpoints' },
 ];
 
-const TEXTAREA_MIN_HEIGHT = 76;
+const TEXTAREA_MIN_HEIGHT = 60;
+const TEXTAREA_MAX_HEIGHT_MOBILE = 120;
+const TEXTAREA_MAX_HEIGHT_DESKTOP = 200;
 
 export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
   (
@@ -64,118 +63,156 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     },
     ref,
   ) => {
-    const TEXTAREA_MAX_HEIGHT = chatStarted ? 400 : 200;
+    const [isMobile] = useState(() => {
+      if (typeof window === 'undefined') return false;
+      return window.innerWidth < 640;
+    });
+
+    const textareaMaxHeight = isMobile ? TEXTAREA_MAX_HEIGHT_MOBILE : TEXTAREA_MAX_HEIGHT_DESKTOP;
     const fileInputRef = React.useRef<HTMLInputElement>(null);
 
     return (
       <div
         ref={ref}
-        className={classNames(
-          styles.BaseChat,
-          'relative flex h-full w-full overflow-hidden bg-bolt-elements-background-depth-1',
-        )}
+        className={classNames(styles.BaseChat, 'relative flex h-full w-full overflow-hidden bg-black')}
         data-chat-visible={showChat}
       >
-        <ClientOnly>{() => <Menu />}</ClientOnly>
+        <ClientOnly fallback={<div className="h-14" />}>{() => <Menu />}</ClientOnly>
+
         <div ref={scrollRef} className="flex overflow-y-auto w-full h-full">
           <div className={classNames(styles.Chat, 'flex flex-col flex-grow min-w-[var(--chat-min-width)] h-full')}>
+            {/* Intro / Landing */}
             {!chatStarted && (
-              <div id="intro" className="mt-[18vh] max-w-chat mx-auto px-4 text-center">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent text-xs font-medium mb-6 animate-fade-in">
-                  <div className="i-ph:sparkle-duotone text-sm" />
-                  AI-powered full-stack development
+              <div id="intro" className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 py-12 sm:py-20">
+                <div className="max-w-2xl w-full text-center">
+                  {/* Badge */}
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-900/80 border border-zinc-800 text-xs font-medium mb-8 animate-fade-in">
+                    <span className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500 animate-pulse" />
+                    <span className="text-zinc-400">AI-powered full-stack development</span>
+                  </div>
+
+                  {/* Hero Title */}
+                  <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold mb-4 sm:mb-6 animate-fade-in leading-tight">
+                    <span className="text-white">What do you want </span>
+                    <span className="bg-gradient-to-r from-violet-400 via-purple-400 to-fuchsia-400 bg-clip-text text-transparent">
+                      to build?
+                    </span>
+                  </h1>
+
+                  {/* Subtitle */}
+                  <p className="text-base sm:text-lg text-zinc-500 mb-10 sm:mb-12 animate-fade-in-delayed max-w-lg mx-auto leading-relaxed">
+                    Describe your idea and Hima will create a production-ready app — from database to deployment, right
+                    in your browser.
+                  </p>
+
+                  {/* Example Prompt Cards */}
+                  <div className="mt-8 sm:mt-12">
+                    <p className="text-xs text-zinc-600 mb-4 uppercase tracking-widest font-medium">Try requesting</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      {EXAMPLE_PROMPTS.map((prompt, index) => (
+                        <button
+                          key={index}
+                          onClick={(event) => sendMessage?.(event, prompt.text)}
+                          className="group flex flex-col items-center gap-2 p-4 sm:p-5 rounded-2xl border border-zinc-800 bg-zinc-900/50 hover:border-violet-500/50 hover:bg-zinc-900 transition-all duration-300 hover:shadow-lg hover:shadow-violet-500/10"
+                        >
+                          <span className="text-zinc-300 group-hover:text-white font-medium text-sm">
+                            {prompt.text}
+                          </span>
+                          <span className="text-zinc-600 text-xs">{prompt.desc}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Features */}
+                  <div className="mt-12 sm:mt-16 flex flex-wrap justify-center gap-6 sm:gap-8">
+                    {[
+                      { icon: '⚡', label: 'Instant deploy' },
+                      { icon: '🔄', label: 'Real-time preview' },
+                      { icon: '📦', label: 'One-click publish' },
+                    ].map((feature, i) => (
+                      <div key={i} className="flex items-center gap-2 text-zinc-500 text-sm">
+                        <span>{feature.icon}</span>
+                        <span>{feature.label}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <h1 className="text-5xl sm:text-6xl font-extrabold text-bolt-elements-textPrimary mb-4 animate-fade-in leading-tight">
-                  What do you want{' '}
-                  <span className="bg-gradient-to-r from-violet-600 to-purple-400 bg-clip-text text-transparent">
-                    to build?
-                  </span>
-                </h1>
-                <p className="mb-2 text-lg text-bolt-elements-textSecondary animate-fade-in-delayed max-w-xl mx-auto">
-                  Describe your idea and Hima will scaffold, code, and run it — right in the browser.
-                </p>
               </div>
             )}
-            <div
-              className={classNames('pt-6 px-6', {
-                'h-full flex flex-col': chatStarted,
-              })}
-            >
+
+            {/* Messages Area */}
+            <div className={classNames('pt-4 sm:pt-6 px-3 sm:px-6', { 'h-full flex flex-col': chatStarted })}>
               <ClientOnly>
-                {() => {
-                  return chatStarted ? (
+                {() =>
+                  chatStarted ? (
                     <Messages
                       ref={messageRef}
-                      className="flex flex-col w-full flex-1 max-w-chat px-4 pb-6 mx-auto z-1"
+                      className="flex flex-col w-full flex-1 max-w-chat px-2 sm:px-4 pb-4 sm:pb-6 mx-auto"
                       messages={messages}
                       isStreaming={isStreaming}
                     />
-                  ) : null;
-                }}
+                  ) : null
+                }
               </ClientOnly>
+
+              {/* Input Area */}
               <div
                 className={classNames('relative w-full max-w-chat mx-auto z-prompt', {
                   'sticky bottom-0': chatStarted,
                 })}
               >
-                <div
-                  className={classNames(
-                    'shadow-[0_8px_32px_rgba(139,92,246,0.12)] border border-bolt-elements-borderColor bg-bolt-elements-prompt-background backdrop-filter backdrop-blur-[12px] rounded-2xl overflow-hidden transition-all duration-200 hover:shadow-[0_8px_40px_rgba(139,92,246,0.2)] hover:border-accent-300',
-                  )}
-                >
+                <div className="rounded-2xl border border-zinc-800 bg-zinc-950/50 backdrop-blur-xl shadow-2xl overflow-hidden transition-all">
+                  {/* Uploaded Files */}
                   {uploadedFiles.length > 0 && (
-                    <div className="flex flex-wrap gap-2 p-3 border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-2">
+                    <div className="flex flex-wrap gap-2 p-3 border-b border-zinc-800">
                       {uploadedFiles.map((file, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center gap-2 px-2 py-1 bg-bolt-elements-background-depth-3 border border-bolt-elements-borderColor rounded-md text-xs text-bolt-elements-textPrimary animate-fade-in"
-                        >
-                          <div
-                            className={classNames(
-                              file.type === 'application/pdf'
-                                ? 'i-ph:file-pdf-duotone'
-                                : file.type.startsWith('image/')
-                                  ? 'i-ph:image-duotone'
-                                  : 'i-ph:file-text-duotone',
-                              'text-lg',
-                            )}
-                          />
-                          <span className="truncate max-w-[150px]">{file.name}</span>
-                          <button
-                            onClick={() => onRemoveFile?.(index)}
-                            className="text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary transition-colors ml-1"
-                          >
-                            <div className="i-ph:x-circle-fill text-sm" />
+                        <div key={index} className="flex items-center gap-2 px-2 py-1 bg-zinc-900 rounded text-xs">
+                          <svg className="w-4 h-4 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                            />
+                          </svg>
+                          <span className="truncate max-w-[120px] sm:max-w-[150px]">{file.name}</span>
+                          <button onClick={() => onRemoveFile?.(index)} className="ml-1 hover:text-red-400">
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M6 18L18 6M6 6l12 12"
+                              />
+                            </svg>
                           </button>
                         </div>
                       ))}
                     </div>
                   )}
+
+                  {/* Textarea */}
                   <textarea
                     ref={textareaRef}
-                    className={`w-full pl-5 pt-5 pr-16 focus:outline-none resize-none text-base text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary bg-transparent leading-relaxed`}
+                    className="w-full pl-5 pt-4 pr-14 pb-4 text-base text-white bg-transparent placeholder-zinc-600 focus:outline-none resize-none"
                     onKeyDown={(event) => {
-                      if (event.key === 'Enter') {
-                        if (event.shiftKey) {
-                          return;
-                        }
-
+                      if (event.key === 'Enter' && !event.shiftKey) {
                         event.preventDefault();
-
                         sendMessage?.(event);
                       }
                     }}
                     value={input}
-                    onChange={(event) => {
-                      handleInputChange?.(event);
-                    }}
+                    onChange={handleInputChange}
                     style={{
                       minHeight: TEXTAREA_MIN_HEIGHT,
-                      maxHeight: TEXTAREA_MAX_HEIGHT,
+                      maxHeight: textareaMaxHeight,
                     }}
-                    placeholder="How can Hima help you today?"
+                    placeholder="Describe your app idea..."
                     translate="no"
                   />
+
+                  {/* Send Button */}
                   <ClientOnly>
                     {() => (
                       <SendButton
@@ -186,21 +223,21 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                             handleStop?.();
                             return;
                           }
-
                           sendMessage?.(event);
                         }}
                       />
                     )}
                   </ClientOnly>
-                  <div className="flex justify-between text-sm p-4 pt-2">
-                    <div className="flex gap-1 items-center">
+
+                  {/* Actions */}
+                  <div className="flex justify-between items-center px-4 pb-3 pt-1">
+                    <div className="flex gap-2">
                       <input
                         type="file"
                         ref={fileInputRef}
                         className="hidden"
                         onChange={(e) => {
                           const files = e.target.files;
-
                           if (files) {
                             Array.from(files).forEach((file) => onFileUpload?.(file));
                             e.target.value = '';
@@ -209,71 +246,76 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                         accept=".pdf,.txt,.md,.js,.ts,.tsx,.jsx,.json,.yaml,.yml,.csv,image/*"
                         multiple
                       />
-                      <IconButton
-                        title="Upload file"
+                      <button
                         onClick={() => fileInputRef.current?.click()}
                         disabled={isStreaming}
+                        className="p-2 rounded-xl text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900 transition-colors disabled:opacity-50"
+                        title="Upload file"
                       >
-                        <div className="i-ph:paperclip text-xl" />
-                      </IconButton>
-                      <IconButton
-                        title="Enhance prompt"
-                        disabled={input.length === 0 || enhancingPrompt}
-                        className={classNames({
-                          'opacity-100!': enhancingPrompt,
-                          'text-bolt-elements-item-contentAccent! pr-1.5 enabled:hover:bg-bolt-elements-item-backgroundAccent!':
-                            promptEnhanced,
-                        })}
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={1.5}
+                            d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
+                          />
+                        </svg>
+                      </button>
+                      <button
                         onClick={() => enhancePrompt?.()}
+                        disabled={input.length === 0 || enhancingPrompt}
+                        className={classNames('p-2 rounded-xl transition-colors disabled:opacity-50', {
+                          'text-violet-400': promptEnhanced,
+                          'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900': !promptEnhanced,
+                        })}
+                        title="Enhance prompt"
                       >
                         {enhancingPrompt ? (
-                          <>
-                            <div className="i-svg-spinners:90-ring-with-bg text-bolt-elements-loader-progress text-xl"></div>
-                            <div className="ml-1.5">Enhancing prompt...</div>
-                          </>
+                          <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth={4}
+                            />
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                            />
+                          </svg>
                         ) : (
-                          <>
-                            <div className="i-bolt:stars text-xl"></div>
-                            {promptEnhanced && <div className="ml-1.5">Prompt enhanced</div>}
-                          </>
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={1.5}
+                              d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.99.84h4.433c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.539-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.783-.57-.38-1.81.588-1.81h4.433a1 1 0 00.99-.84l1.519-4.674z"
+                            />
+                          </svg>
                         )}
-                      </IconButton>
+                      </button>
                     </div>
-                    {input.length > 3 ? (
-                      <div className="text-xs text-bolt-elements-textTertiary">
-                        Use <kbd className="kdb">Shift</kbd> + <kbd className="kdb">Return</kbd> for a new line
-                      </div>
-                    ) : null}
+                    {input.length > 3 && (
+                      <span className="text-xs text-zinc-600 hidden sm:block">
+                        <kbd className="px-1.5 py-0.5 bg-zinc-900 rounded text-xs">Shift</kbd> +{' '}
+                        <kbd className="px-1.5 py-0.5 bg-zinc-900 rounded text-xs">Return</kbd> for new line
+                      </span>
+                    )}
                   </div>
                 </div>
-                <div className="bg-bolt-elements-background-depth-1 pb-6">{/* Ghost Element */}</div>
+
+                <div className="h-4 sm:h-6" />
               </div>
             </div>
-            {!chatStarted && (
-              <div id="examples" className="relative w-full max-w-2xl mx-auto mt-6 px-4">
-                <p className="text-xs text-center text-bolt-elements-textTertiary mb-3 uppercase tracking-wide font-medium">
-                  Try an example
-                </p>
-                <div className="flex flex-wrap gap-2 justify-center">
-                  {EXAMPLE_PROMPTS.map((examplePrompt, index) => (
-                    <button
-                      key={index}
-                      onClick={(event) => {
-                        sendMessage?.(event, examplePrompt.text);
-                      }}
-                      className="group flex items-center gap-2 px-3.5 py-2 rounded-full border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 text-sm text-bolt-elements-textSecondary hover:border-accent-400 hover:text-bolt-elements-textPrimary hover:bg-bolt-elements-item-backgroundAccent transition-all duration-150"
-                    >
-                      <div
-                        className={`${examplePrompt.icon} text-base text-bolt-elements-textTertiary group-hover:text-bolt-elements-item-contentAccent transition-colors`}
-                      />
-                      {examplePrompt.text}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
-          <ClientOnly>{() => <Workbench chatStarted={chatStarted} isStreaming={isStreaming} />}</ClientOnly>
+
+          {/* Workbench */}
+          <ClientOnly fallback={<div />}>
+            {() => <Workbench chatStarted={chatStarted} isStreaming={isStreaming} />}
+          </ClientOnly>
         </div>
       </div>
     );

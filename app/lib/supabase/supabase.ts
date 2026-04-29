@@ -1,23 +1,20 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import { cloudStore } from '~/lib/stores/cloud';
 
 let supabaseInstance: SupabaseClient | null = null;
-let currentUrl: string | null = null;
-let currentKey: string | null = null;
 
 export function getSupabaseClient(): SupabaseClient | null {
-  const { supabaseUrl, supabaseAnonKey } = cloudStore.get();
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseAnonKey) {
+    console.warn('Supabase: Missing URL or anon key from environment');
     return null;
   }
 
-  // re-init if keys changed
-  if (supabaseInstance === null || supabaseUrl !== currentUrl || supabaseAnonKey !== currentKey) {
+  if (!supabaseInstance) {
     try {
       supabaseInstance = createClient(supabaseUrl, supabaseAnonKey);
-      currentUrl = supabaseUrl;
-      currentKey = supabaseAnonKey;
+      console.log('Supabase client initialized:', supabaseUrl);
     } catch (e) {
       console.error('Failed to initialize Supabase client:', e);
       return null;
@@ -25,4 +22,19 @@ export function getSupabaseClient(): SupabaseClient | null {
   }
 
   return supabaseInstance;
+}
+
+export function getSupabaseUrl(): string | undefined {
+  return process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+}
+
+export function getServiceRoleKey(): string | undefined {
+  return process.env.SUPABASE_SERVICE_ROLE_KEY;
+}
+
+export function isConfigured(): boolean {
+  return (
+    !!(process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL) &&
+    !!(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY)
+  );
 }

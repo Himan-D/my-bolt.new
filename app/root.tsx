@@ -1,4 +1,4 @@
-import { json, type LinksFunction, type LoaderFunctionArgs } from '@remix-run/cloudflare';
+import { json, type LinksFunction, type LoaderFunctionArgs } from '@remix-run/node';
 import { useStore } from '@nanostores/react';
 import { Links, Meta, Outlet, Scripts, ScrollRestoration } from '@remix-run/react';
 import tailwindReset from '@unocss/reset/tailwind-compat.css?url';

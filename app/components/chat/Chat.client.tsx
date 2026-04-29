@@ -127,7 +127,13 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
 
   useEffect(() => {
     chatStore.setKey('started', initialMessages.length > 0);
-  }, []);
+
+    // Force OpenAI as default provider to avoid Anthropic API errors
+    if (selectedProvider === 'Anthropic') {
+      selectedProviderStore.set('OpenAI');
+      selectedModelStore.set('gpt-4o');
+    }
+  }, [selectedProvider]);
 
   useEffect(() => {
     parseMessages(messages, isLoading);

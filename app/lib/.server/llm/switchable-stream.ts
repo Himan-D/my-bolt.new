@@ -1,27 +1,29 @@
-export default class SwitchableStream extends TransformStream {
-  private _controller: TransformStreamDefaultController | null = null;
-  private _currentReader: ReadableStreamDefaultReader | null = null;
+import { Readable } from 'node:stream';
+
+export default class SwitchableStream {
+  private _controller: any = null;
+  private _currentReader: any = null;
   private _switches = 0;
+  private _readable: Readable;
+  private _buffer: Buffer[] = [];
 
   constructor() {
-    let controllerRef: TransformStreamDefaultController | undefined;
-
-    super({
-      start(controller) {
-        controllerRef = controller;
-      },
+    this._readable = new Readable({
+      read() {},
     });
+  }
 
-    if (controllerRef === undefined) {
-      throw new Error('Controller not properly initialized');
-    }
-
-    this._controller = controllerRef;
+  get readable() {
+    return this._readable;
   }
 
   async switchSource(newStream: ReadableStream) {
     if (this._currentReader) {
-      await this._currentReader.cancel();
+      try {
+        await this._currentReader.cancel();
+      } catch (e) {
+        // Ignore cancel errors
+      }
     }
 
     this._currentReader = newStream.getReader();
@@ -32,8 +34,8 @@ export default class SwitchableStream extends TransformStream {
   }
 
   private async _pumpStream() {
-    if (!this._currentReader || !this._controller) {
-      throw new Error('Stream is not properly initialized');
+    if (!this._currentReader) {
+      return;
     }
 
     try {
@@ -41,23 +43,37 @@ export default class SwitchableStream extends TransformStream {
         const { done, value } = await this._currentReader.read();
 
         if (done) {
+          this._readable.push(null);
           break;
         }
 
-        this._controller.enqueue(value);
+        if (value) {
+          // Handle different data types from the stream
+          if (typeof value === 'string') {
+            this._readable.push(value);
+          } else if (value instanceof Uint8Array) {
+            this._readable.push(Buffer.from(value));
+          } else {
+            this._readable.push(JSON.stringify(value));
+          }
+        }
       }
-    } catch (error) {
-      console.log(error);
-      this._controller.error(error);
+    } catch (error: any) {
+      console.log('Stream pump error:', error.message);
+      this._readable.destroy(error);
     }
   }
 
   close() {
     if (this._currentReader) {
-      this._currentReader.cancel();
+      try {
+        this._currentReader.cancel();
+      } catch (e) {
+        // Ignore
+      }
     }
 
-    this._controller?.terminate();
+    this._readable.push(null);
   }
 
   get switches() {
